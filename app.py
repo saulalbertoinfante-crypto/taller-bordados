@@ -1,8 +1,6 @@
-from flask import Flask, render_template_string
+import streamlit as st
 
-app = Flask(__name__)
-
-# TODA la interfaz (HTML, CSS y JS) va DENTRO de estas triples comillas
+# Toda la interfaz (HTML, CSS y JS) va aquí dentro
 HTML_CODE = """
 <!DOCTYPE html>
 <html lang="es">
@@ -11,7 +9,7 @@ HTML_CODE = """
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Catálogo de Bordados</title>
     <style>
-        /* ----- RESET Y ESTILOS GENERALES (CORREGIDOS) ----- */
+        /* ----- RESET Y ESTILOS GENERALES ----- */
         * {
             margin: 0;
             padding: 0;
@@ -24,7 +22,6 @@ HTML_CODE = """
             max-width: 1400px;
             margin: 0 auto;
         }
-        /* Header */
         .header {
             margin-bottom: 30px;
         }
@@ -103,8 +100,6 @@ HTML_CODE = """
             display: block;
             transition: transform 0.4s ease;
         }
-
-        /* Contenedor de la imagen (para overlays) */
         .pin-image-wrapper {
             position: relative;
         }
@@ -128,7 +123,7 @@ HTML_CODE = """
             box-shadow: 0 2px 8px rgba(34, 163, 159, 0.4);
         }
 
-        /* Overlay inferior (nombre + precio) */
+        /* Overlay inferior */
         .pin-overlay {
             position: absolute;
             bottom: 0;
@@ -157,7 +152,7 @@ HTML_CODE = """
             backdrop-filter: blur(4px);
         }
 
-        /* ----- CONTROL DE CANTIDAD (DENTRO DE LA IMAGEN) ----- */
+        /* ----- CONTROL DE CANTIDAD ----- */
         .quantity-control {
             position: absolute;
             bottom: 15px;
@@ -761,9 +756,6 @@ HTML_CODE = """
 </html>
 """
 
-@app.route('/')
-def index():
-    return render_template_string(HTML_CODE)
-
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+# ----- STREAMLIT APP -----
+st.set_page_config(page_title="Catálogo de Bordados", layout="wide")
+st.components.v1.html(HTML_CODE, height=1200, scrolling=True)
