@@ -22,7 +22,7 @@ PRODUCTOS = [
 ]
 
 # =============================================
-# INICIALIZAR ESTADO
+# INICIALIZAR ESTADO DE SESIÓN
 # =============================================
 if "mostrar_hasta" not in st.session_state:
     st.session_state.mostrar_hasta = 9
@@ -32,49 +32,27 @@ if "filtro_actual" not in st.session_state:
     st.session_state.filtro_actual = "all"
 
 # =============================================
-# CALLBACK PARA RECIBIR MENSAJES DEL IFRAME
-# =============================================
-def on_message(value):
-    if value is None:
-        return
-    if isinstance(value, dict):
-        if value.get("action") == "increment":
-            pid = value.get("id")
-            if pid in st.session_state.cantidades:
-                st.session_state.cantidades[pid] += 1
-                st.rerun()
-        elif value.get("action") == "decrement":
-            pid = value.get("id")
-            if pid in st.session_state.cantidades and st.session_state.cantidades[pid] > 0:
-                st.session_state.cantidades[pid] -= 1
-                st.rerun()
-        elif value.get("action") == "filter":
-            st.session_state.filtro_actual = value.get("category", "all")
-            st.session_state.mostrar_hasta = 9
-            st.rerun()
-    elif isinstance(value, str) and value == "cargar_mas":
-        st.session_state.mostrar_hasta += 9
-        st.rerun()
-
-# =============================================
-# GENERAR HTML PARA EL COMPONENTE
+# FUNCIÓN PARA GENERAR EL HTML
 # =============================================
 def generar_html():
+    # Datos serializados a JSON para inyectar en JavaScript
     productos_json = json.dumps(PRODUCTOS)
     cantidades_json = json.dumps(st.session_state.cantidades)
     filtro = st.session_state.filtro_actual
     mostrar_hasta = st.session_state.mostrar_hasta
 
+    # Determinar si hay más productos para cargar
     productos_filtrados = PRODUCTOS if filtro == "all" else [p for p in PRODUCTOS if p["categoria"] == filtro]
     hay_mas = len(productos_filtrados) > mostrar_hasta
 
+    # Construir el HTML con todas las llaves de JS escapadas con {{ y }}
     html = f"""
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catálogo</title>
+    <title>Catálogo de Bordados</title>
     <style>
         * {{ margin:0; padding:0; box-sizing:border-box; font-family: 'Inter', -apple-system, sans-serif; }}
         body {{
@@ -297,157 +275,6 @@ def generar_html():
             color: #94A3B8;
             padding: 20px 0 40px 0;
         }}
-        /* Modal */
-        .modal-overlay {{
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(4px);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }}
-        .modal-overlay.active {{
-            display: flex;
-        }}
-        .modal-content {{
-            background: white;
-            max-width: 500px;
-            width: 100%;
-            max-height: 90vh;
-            overflow-y: auto;
-            padding: 30px;
-            border-radius: 24px;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.3);
-            animation: fadeInUp 0.3s ease;
-            position: relative;
-        }}
-        @keyframes fadeInUp {{
-            from {{ opacity: 0; transform: scale(0.95) translateY(20px); }}
-            to {{ opacity: 1; transform: scale(1) translateY(0); }}
-        }}
-        .modal-content h2 {{
-            color: #1A5F7A;
-            font-size: 1.5rem;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #E2E8F0;
-            padding-bottom: 10px;
-        }}
-        .modal-resumen {{
-            background: #F8FAFC;
-            padding: 15px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-        }}
-        .modal-resumen-item {{
-            display: flex;
-            justify-content: space-between;
-            padding: 6px 0;
-            border-bottom: 1px dashed #E2E8F0;
-            font-size: 0.95rem;
-        }}
-        .modal-resumen-item:last-child {{
-            border-bottom: none;
-        }}
-        .modal-total {{
-            display: flex;
-            justify-content: space-between;
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: #1A5F7A;
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 2px solid #1A5F7A;
-        }}
-        .form-group {{
-            margin-bottom: 18px;
-        }}
-        .form-group label {{
-            display: block;
-            font-weight: 600;
-            color: #1A2B3C;
-            margin-bottom: 5px;
-            font-size: 0.9rem;
-        }}
-        .form-group input, .form-group select {{
-            width: 100%;
-            padding: 12px 15px;
-            border: 1.5px solid #E2E8F0;
-            border-radius: 12px;
-            font-size: 1rem;
-            transition: 0.2s;
-        }}
-        .form-group input:focus, .form-group select:focus {{
-            outline: none;
-            border-color: #1A5F7A;
-            box-shadow: 0 0 0 3px rgba(26,95,122,0.1);
-        }}
-        .payment-options {{
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }}
-        .payment-options button {{
-            padding: 10px 16px;
-            border-radius: 30px;
-            border: 2px solid #E2E8F0;
-            background: white;
-            font-weight: 500;
-            cursor: pointer;
-            transition: 0.2s;
-            flex: 1;
-            min-width: 70px;
-        }}
-        .payment-options button.selected {{
-            border-color: #1A5F7A;
-            background: #EFF6FF;
-            color: #1A5F7A;
-            font-weight: 600;
-            box-shadow: 0 0 0 3px rgba(26,95,122,0.15);
-        }}
-        .file-upload {{
-            border: 2px dashed #CBD5E1;
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
-            cursor: pointer;
-            transition: 0.2s;
-        }}
-        .file-upload:hover {{
-            border-color: #1A5F7A;
-            background: #F8FAFC;
-        }}
-        .file-upload input {{
-            display: none;
-        }}
-        .btn-submit {{
-            width: 100%;
-            padding: 14px;
-            background: #1A5F7A;
-            color: white;
-            border: none;
-            border-radius: 14px;
-            font-size: 1.1rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: 0.2s;
-            margin-top: 10px;
-        }}
-        .btn-submit:hover {{
-            background: #0f4a5e;
-        }}
-        .btn-close-modal {{
-            background: transparent;
-            border: none;
-            font-size: 1.8rem;
-            position: absolute;
-            top: 15px;
-            right: 20px;
-            cursor: pointer;
-            color: #94A3B8;
-        }}
         @media (max-width: 768px) {{
             .masonry {{ column-count: 2; column-gap: 12px; }}
             .header h1 {{ font-size: 1.6rem; }}
@@ -478,70 +305,16 @@ def generar_html():
     </div>
 
     <div class="masonry" id="masonry"></div>
-
     <div id="cargar-mas-container"></div>
 
-    <!-- MODAL DE PEDIDO -->
-    <div class="modal-overlay" id="modalPedido">
-        <div class="modal-content">
-            <button class="btn-close-modal" id="cerrarModal">×</button>
-            <h2 id="modalTitulo">Pedido</h2>
-            <div class="modal-resumen" id="modalResumen"></div>
-            <div class="form-group">
-                <label>Nombre y Apellido</label>
-                <input type="text" id="clienteNombre" placeholder="Ej: Ana Pérez">
-            </div>
-            <div class="form-group">
-                <label>Tipo de Persona</label>
-                <select id="clienteTipo">
-                    <option value="natural">Persona Natural</option>
-                    <option value="empresa">Empresa</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Método de Pago</label>
-                <div class="payment-options" id="paymentOptions">
-                    <button data-method="yape">Yape</button>
-                    <button data-method="plin">Plin</button>
-                    <button data-method="transferencia">Transferencia</button>
-                    <button data-method="efectivo">Efectivo</button>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Adjuntar Captura de Pago</label>
-                <div class="file-upload" id="fileUploadBox">
-                    <p>Haz clic para subir o arrastra tu captura</p>
-                    <input type="file" id="fileInput" accept="image/*">
-                </div>
-                <span id="fileNombre" style="font-size:0.9rem; color:#22A39F; display:block; margin-top:5px;"></span>
-            </div>
-            <button class="btn-submit" id="confirmarPedido">Confirmar Pedido</button>
-        </div>
-    </div>
-
     <script>
+        // Datos desde Python
         const productos = {productos_json};
         const cantidadesIniciales = {cantidades_json};
-        let cantidades = {{}};
-        Object.assign(cantidades, cantidadesIniciales);
-
+        let cantidades = {{...cantidadesIniciales}};
         let mostrarHasta = {mostrar_hasta};
         let filtroActual = "{filtro}";
         const hayMas = {str(hay_mas).lower()};
-
-        // Referencias del modal
-        const modal = document.getElementById('modalPedido');
-        const modalTitulo = document.getElementById('modalTitulo');
-        const modalResumen = document.getElementById('modalResumen');
-        const cerrarModal = document.getElementById('cerrarModal');
-        const confirmarBtn = document.getElementById('confirmarPedido');
-        const clienteNombre = document.getElementById('clienteNombre');
-        const clienteTipo = document.getElementById('clienteTipo');
-        const paymentOptions = document.getElementById('paymentOptions');
-        const fileInput = document.getElementById('fileInput');
-        const fileNombre = document.getElementById('fileNombre');
-        const fileUploadBox = document.getElementById('fileUploadBox');
-        let productoPedidoId = null;
 
         function enviarMensaje(valor) {{
             window.parent.postMessage({{
@@ -551,10 +324,9 @@ def generar_html():
         }}
 
         function renderizar() {{
-            const filtrados = filtroActual === 'all'
-                ? productos
+            const filtrados = filtroActual === 'all' 
+                ? productos 
                 : productos.filter(p => p.categoria === filtroActual);
-
             const visibles = filtrados.slice(0, mostrarHasta);
             const container = document.getElementById('masonry');
             container.innerHTML = '';
@@ -607,95 +379,7 @@ def generar_html():
             }}
         }}
 
-        // ABRIR MODAL
-        function abrirModal(id) {{
-            productoPedidoId = id;
-            const prod = productos.find(p => p.id === id);
-            const cant = cantidades[id] || 0;
-            if (cant === 0) {{
-                alert('Primero selecciona una cantidad con el botón +.');
-                return;
-            }}
-            const subtotal = (prod.precio * cant).toFixed(2);
-
-            modalTitulo.textContent = `Pedido: ${{prod.nombre}}`;
-            modalResumen.innerHTML = `
-                <div class="modal-resumen-item"><span>Diseño</span><span><strong>${{prod.nombre}}</strong></span></div>
-                <div class="modal-resumen-item"><span>Cantidad</span><span>${{cant}}</span></div>
-                <div class="modal-resumen-item"><span>Precio Unitario</span><span>$${{prod.precio.toFixed(2)}}</span></div>
-                <div class="modal-total"><span>Subtotal</span><span>$${{subtotal}}</span></div>
-            `;
-
-            // Resetear campos
-            clienteNombre.value = '';
-            clienteTipo.value = 'natural';
-            document.querySelectorAll('.payment-options button').forEach(b => b.classList.remove('selected'));
-            fileInput.value = '';
-            fileNombre.textContent = '';
-
-            modal.classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }}
-
-        function cerrarModalFunc() {{
-            modal.classList.remove('active');
-            document.body.style.overflow = '';
-            productoPedidoId = null;
-        }}
-
-        cerrarModal.addEventListener('click', cerrarModalFunc);
-        modal.addEventListener('click', (e) => {{
-            if (e.target === modal) cerrarModalFunc();
-        }});
-
-        // Métodos de pago
-        paymentOptions.querySelectorAll('button').forEach(btn => {{
-            btn.addEventListener('click', function() {{
-                paymentOptions.querySelectorAll('button').forEach(b => b.classList.remove('selected'));
-                this.classList.add('selected');
-            }});
-        }});
-
-        // Subida de archivo
-        fileInput.addEventListener('change', function() {{
-            if (this.files.length > 0) {{
-                fileNombre.textContent = `Archivo: ${{this.files[0].name}}`;
-            }}
-        }});
-        fileUploadBox.addEventListener('click', () => fileInput.click());
-
-        // Confirmar pedido
-        confirmarBtn.addEventListener('click', function() {{
-            if (productoPedidoId === null) return;
-            const prod = productos.find(p => p.id === productoPedidoId);
-            const cant = cantidades[productoPedidoId] || 0;
-            const subtotal = (prod.precio * cant).toFixed(2);
-
-            const nombre = clienteNombre.value.trim();
-            if (!nombre) {{
-                alert('Por favor, ingresa tu nombre y apellido.');
-                return;
-            }}
-            const tipo = clienteTipo.value === 'natural' ? 'Persona Natural' : 'Empresa';
-            const metodoSeleccionado = paymentOptions.querySelector('button.selected');
-            const metodo = metodoSeleccionado ? metodoSeleccionado.textContent.trim() : 'No seleccionado';
-            const archivo = fileInput.files[0];
-
-            let resumen = `PEDIDO CONFIRMADO\\n`;
-            resumen += `Cliente: ${{nombre}}\\n`;
-            resumen += `Tipo: ${{tipo}}\\n`;
-            resumen += `Pago: ${{metodo}}\\n`;
-            resumen += `Archivo: ${{archivo ? archivo.name : 'No se adjuntó'}}\\n`;
-            resumen += `───────────────────\\n`;
-            resumen += `Diseño: ${{prod.nombre}}\\n`;
-            resumen += `Cantidad: ${{cant}}\\n`;
-            resumen += `Subtotal: $${subtotal}\\n`;
-
-            alert(resumen);
-            cerrarModalFunc();
-        }});
-
-        // Eventos de botones (delegación)
+        // Delegación de eventos
         document.addEventListener('click', function(e) {{
             const btn = e.target.closest('button');
             if (!btn) return;
@@ -742,7 +426,14 @@ def generar_html():
                 }}
             }} else if (btn.classList.contains('btn-pedir')) {{
                 const pid = parseInt(id);
-                abrirModal(pid);
+                const cant = cantidades[pid] || 0;
+                if (cant === 0) {{
+                    alert('Primero selecciona una cantidad con el botón +.');
+                    return;
+                }}
+                const prod = productos.find(p => p.id === pid);
+                const subtotal = (prod.precio * cant).toFixed(2);
+                alert(`PEDIDO\\nDiseño: ${{prod.nombre}}\\nCantidad: ${{cant}}\\nSubtotal: $${subtotal}`);
             }}
         }});
 
@@ -758,6 +449,7 @@ def generar_html():
             }});
         }});
 
+        // Inicializar
         renderizar();
     </script>
 </body>
@@ -766,11 +458,36 @@ def generar_html():
     return html
 
 # =============================================
-# CONFIGURACIÓN DE LA PÁGINA
+# CALLBACK PARA RECIBIR MENSAJES DEL IFRAME
+# =============================================
+def on_message(value):
+    if value is None:
+        return
+    if isinstance(value, dict):
+        if value.get("action") == "increment":
+            pid = value.get("id")
+            if pid in st.session_state.cantidades:
+                st.session_state.cantidades[pid] += 1
+                st.rerun()
+        elif value.get("action") == "decrement":
+            pid = value.get("id")
+            if pid in st.session_state.cantidades and st.session_state.cantidades[pid] > 0:
+                st.session_state.cantidades[pid] -= 1
+                st.rerun()
+        elif value.get("action") == "filter":
+            st.session_state.filtro_actual = value.get("category", "all")
+            st.session_state.mostrar_hasta = 9
+            st.rerun()
+    elif isinstance(value, str) and value == "cargar_mas":
+        st.session_state.mostrar_hasta += 9
+        st.rerun()
+
+# =============================================
+# CONFIGURAR PÁGINA Y MOSTRAR COMPONENTE
 # =============================================
 st.set_page_config(page_title="Catálogo de Bordados", layout="wide")
 
-# Ocultar el menú de Streamlit
+# Ocultar elementos de Streamlit
 st.markdown("""
 <style>
     #MainMenu {visibility: hidden;}
@@ -780,9 +497,15 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Mostrar el componente
+# Mostrar el componente con altura dinámica
 st.components.v1.html(
     generar_html(),
     height=None,
     scrolling=False,
 )
+
+# Pequeño espacio al final
+st.markdown("<br>", unsafe_allow_html=True)
+
+# Nota: El callback on_message se ejecuta automáticamente al recibir mensajes
+# porque el componente usa postMessage con el tipo 'streamlit:setComponentValue'.
