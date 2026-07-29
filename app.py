@@ -1,7 +1,7 @@
 import streamlit as st
 
 # =============================================
-# DATOS DE PRODUCTOS (puedes añadir más)
+# DATOS DE PRODUCTOS
 # =============================================
 PRODUCTOS = [
     {"id": 1, "nombre": "Mariposa Monarca", "categoria": "animales", "precio": 5.00, "imagen": "https://picsum.photos/seed/mariposa/300/450", "personalizable": False},
@@ -10,15 +10,13 @@ PRODUCTOS = [
     {"id": 4, "nombre": "Águila Real", "categoria": "animales", "precio": 8.00, "imagen": "https://picsum.photos/seed/aguila/300/380", "personalizable": False},
     {"id": 5, "nombre": "Mandala", "categoria": "geometrico", "precio": 7.00, "imagen": "https://picsum.photos/seed/mandala/300/350", "personalizable": False},
     {"id": 6, "nombre": "Nombre Propio", "categoria": "nombres", "precio": 4.00, "imagen": "https://picsum.photos/seed/nombre/300/480", "personalizable": True},
-    # --- más diseños (prueba de carga) ---
+    # Más productos (para probar "Cargar más")
     {"id": 7, "nombre": "Mariposa 2", "categoria": "animales", "precio": 5.50, "imagen": "https://picsum.photos/seed/mariposa2/300/400", "personalizable": False},
     {"id": 8, "nombre": "Ramo 2", "categoria": "floral", "precio": 7.00, "imagen": "https://picsum.photos/seed/ramo2/300/350", "personalizable": False},
     {"id": 9, "nombre": "Letra A", "categoria": "letras", "precio": 3.50, "imagen": "https://picsum.photos/seed/letraA/300/420", "personalizable": True},
     {"id": 10, "nombre": "Águila 2", "categoria": "animales", "precio": 9.00, "imagen": "https://picsum.photos/seed/aguila2/300/390", "personalizable": False},
     {"id": 11, "nombre": "Mandala 2", "categoria": "geometrico", "precio": 7.50, "imagen": "https://picsum.photos/seed/mandala2/300/360", "personalizable": False},
     {"id": 12, "nombre": "Nombre 2", "categoria": "nombres", "precio": 4.50, "imagen": "https://picsum.photos/seed/nombre2/300/470", "personalizable": True},
-    {"id": 13, "nombre": "Mariposa 3", "categoria": "animales", "precio": 6.00, "imagen": "https://picsum.photos/seed/mariposa3/300/430", "personalizable": False},
-    {"id": 14, "nombre": "Ramo 3", "categoria": "floral", "precio": 8.00, "imagen": "https://picsum.photos/seed/ramo3/300/310", "personalizable": False},
 ]
 
 # =============================================
@@ -32,24 +30,21 @@ if "filtro_actual" not in st.session_state:
     st.session_state.filtro_actual = "all"
 
 # =============================================
-# FUNCIÓN PARA GENERAR EL HTML COMPLETO
+# FUNCIÓN PARA GENERAR EL HTML (con llaves escapadas)
 # =============================================
 def generar_html():
-    # Aplicar filtro
     filtro = st.session_state.filtro_actual
     productos_filtrados = PRODUCTOS if filtro == "all" else [p for p in PRODUCTOS if p["categoria"] == filtro]
-    
-    # Los que se muestran según el límite de carga
     productos_visibles = productos_filtrados[:st.session_state.mostrar_hasta]
-    
-    # Construir las tarjetas
+
+    # Construir tarjetas
     tarjetas = ""
     for prod in productos_visibles:
         cant = st.session_state.cantidades.get(prod["id"], 0)
         subtotal = prod["precio"] * cant
         badge = '<span class="badge-personalizable">Personalizable</span>' if prod["personalizable"] else ""
         subtotal_html = f'<span class="subtotal-display">Subtotal: ${subtotal:.2f}</span>' if cant > 0 else ""
-        
+
         tarjetas += f"""
         <div class="pin">
             <div class="pin-image-wrapper">
@@ -73,21 +68,22 @@ def generar_html():
             </div>
         </div>
         """
-    
-    # Botón "Cargar más" si hay más productos
+
+    # Botón "Cargar más"
     cargar_mas_btn = ""
     if len(productos_filtrados) > st.session_state.mostrar_hasta:
         cargar_mas_btn = f"""
         <div style="text-align:center; margin: 30px 0;">
-            <button onclick="window.parent.postMessage({{type: 'streamlit:setComponentValue', value: 'cargar_mas'}}, '*')" 
+            <button onclick="window.parent.postMessage({{type: 'streamlit:setComponentValue', value: 'cargar_mas'}}, '*')"
                     style="background:#1A5F7A; color:white; border:none; padding:12px 40px; border-radius:30px; font-size:1.1rem; font-weight:600; cursor:pointer; box-shadow:0 4px 15px rgba(26,95,122,0.3);">
                 Cargar más diseños
             </button>
         </div>
         """
-    
-    # HTML completo (con estilos y JavaScript)
-    return f"""
+
+    # HTML COMPLETO (TODAS LAS LLAVES { } DENTRO DE JAVASCRIPT O CSS DEBEN SER DOBLES {{ }})
+    # ¡Aquí está la clave! ESCAPAMOS todas las llaves que no sean para Python
+    html = f"""
     <!DOCTYPE html>
     <html>
     <head>
@@ -102,7 +98,6 @@ def generar_html():
                 max-width: 1400px;
                 margin: 0 auto;
             }}
-            /* Header */
             .header {{
                 margin-bottom: 30px;
                 padding-top: 20px;
@@ -116,7 +111,6 @@ def generar_html():
                 color: #64748B;
                 font-size: 1.1rem;
             }}
-            /* Filtros */
             .filters {{
                 display: flex;
                 flex-wrap: wrap;
@@ -147,7 +141,6 @@ def generar_html():
                 font-weight: 600;
                 box-shadow: 0 4px 10px rgba(26,95,122,0.3);
             }}
-            /* Masonry */
             .masonry {{
                 column-count: 3;
                 column-gap: 20px;
@@ -316,7 +309,7 @@ def generar_html():
             <h1>Catálogo de Diseños</h1>
             <p>Explora, ajusta cantidades y haz tu pedido directamente desde cada diseño.</p>
         </div>
-        
+
         <div class="filters">
             <button class="filter-btn active" data-category="all">Todas</button>
             <button class="filter-btn" data-category="animales">Animales</button>
@@ -325,44 +318,44 @@ def generar_html():
             <button class="filter-btn" data-category="letras">Letras</button>
             <button class="filter-btn" data-category="nombres">Nombres</button>
         </div>
-        
+
         <div class="masonry" id="masonry">
             {tarjetas}
         </div>
-        
+
         {cargar_mas_btn}
-        
+
         <script>
             // Productos (solo para referencia en el frontend)
             const productos = {PRODUCTOS};
-            
+
             // Estado de cantidades (se sincroniza con Python mediante postMessage)
-            let cantidades = {};
+            let cantidades = {{}};
             productos.forEach(p => cantidades[p.id] = 0);
-            
+
             // Inicializar cantidades desde Python
             const cantidadesPython = {st.session_state.cantidades};
             Object.keys(cantidadesPython).forEach(id => {{
                 cantidades[id] = cantidadesPython[id] || 0;
             }});
-            
+
             // Actualizar UI de una tarjeta
             function actualizarUI(id) {{
                 const qtySpan = document.getElementById('qty-' + id);
                 if (!qtySpan) return;
                 qtySpan.textContent = cantidades[id] || 0;
-                
+
                 const pin = qtySpan.closest('.pin');
                 if (!pin) return;
                 const footer = pin.querySelector('.pin-footer');
                 const subtotalContainer = footer.querySelector('div:first-child');
                 const prod = productos.find(p => p.id == id);
                 const subtotal = prod.precio * (cantidades[id] || 0);
-                
+
                 // Eliminar subtotal anterior
                 const oldSub = subtotalContainer.querySelector('.subtotal-display');
                 if (oldSub) oldSub.remove();
-                
+
                 // Agregar nuevo si > 0
                 if (cantidades[id] > 0) {{
                     const newSub = document.createElement('span');
@@ -371,14 +364,14 @@ def generar_html():
                     subtotalContainer.appendChild(newSub);
                 }}
             }}
-            
+
             // Manejar eventos de los botones
             document.addEventListener('click', function(e) {{
                 const btn = e.target.closest('button');
                 if (!btn) return;
                 const id = btn.dataset.id;
                 if (!id) return;
-                
+
                 if (btn.classList.contains('qty-plus')) {{
                     cantidades[id] = (cantidades[id] || 0) + 1;
                     actualizarUI(id);
@@ -407,7 +400,7 @@ def generar_html():
                     alert(`PEDIDO\\nDiseño: ${{prod.nombre}}\\nCantidad: ${{cant}}\\nSubtotal: $${subtotal}`);
                 }}
             }});
-            
+
             // Filtros
             document.querySelectorAll('.filter-btn').forEach(btn => {{
                 btn.addEventListener('click', function() {{
@@ -420,8 +413,8 @@ def generar_html():
                     }}, '*');
                 }});
             }});
-            
-            // Cargar más diseños
+
+            // Cargar más diseños (capturar el botón con onclick)
             document.querySelector('[onclick*="cargar_mas"]')?.addEventListener('click', function() {{
                 window.parent.postMessage({{
                     type: 'streamlit:setComponentValue',
@@ -432,21 +425,16 @@ def generar_html():
     </body>
     </html>
     """
+    return html
 
 # =============================================
-# INTERFAZ STREAMLIT
+# APLICACIÓN STREAMLIT
 # =============================================
 st.set_page_config(page_title="Catálogo de Bordados", layout="wide")
 
-# Inyectar el HTML completo como componente
+# Renderizar el HTML
 st.components.v1.html(
     generar_html(),
-    height=10000,      # Suficiente para cualquier cantidad de diseños
-    scrolling=True,    # El iframe tiene su propio scroll (único)
+    height=10000,
+    scrolling=True,
 )
-
-# Nota: El componente maneja toda la lógica visual.
-# Los eventos (+, -, filtros, cargar más) se capturan en Python mediante
-# st.query_params o un callback, pero para simplificar esta demo,
-# los dejamos en el frontend. Para una versión completa, necesitarías
-# un componente con callback.
