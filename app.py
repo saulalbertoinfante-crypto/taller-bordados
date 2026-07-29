@@ -1,3 +1,16 @@
+import streamlit as st
+import streamlit.components.v1 as components
+
+# Configuración básica de la página en Streamlit
+st.set_page_config(
+    page_title="Muro de Inspiración",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+# Renderizar el HTML/CSS/JS dentro de Streamlit
+components.html(
+    """
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -27,7 +40,7 @@
     body {
       background-color: var(--bg-light);
       color: var(--text-main);
-      padding: 40px 20px;
+      padding: 20px 10px;
     }
 
     .container {
@@ -37,7 +50,7 @@
 
     /* HEADER */
     header {
-      margin-bottom: 30px;
+      margin-bottom: 25px;
       text-align: center;
     }
 
@@ -54,7 +67,7 @@
       justify-content: center;
       gap: 10px;
       flex-wrap: wrap;
-      margin-bottom: 35px;
+      margin-bottom: 30px;
     }
 
     .chip-btn {
@@ -294,7 +307,6 @@
     <div class="masonry-grid" id="masonryGrid"></div>
   </div>
 
-  <!-- Contenedor para notificaciones Toast -->
   <div class="toast-container" id="toastContainer"></div>
 
   <script>
@@ -307,7 +319,6 @@
       { id: 6, name: "Nombre Personalizado", category: "nombres", price: 4.00, image: "https://via.placeholder.com/300x450/AEE2FF/1A5F7A?text=Nombre", personalizable: true }
     ];
 
-    // Estado local para persistir cantidades seleccionadas
     const quantities = {};
     designs.forEach(item => { quantities[item.id] = 0; });
 
@@ -315,7 +326,6 @@
     const filterContainer = document.getElementById("filterContainer");
     const toastContainer = document.getElementById("toastContainer");
 
-    // Función principal para renderizar las tarjetas en el DOM
     function renderCards(category = "todas") {
       masonryGrid.innerHTML = "";
       
@@ -352,7 +362,6 @@
       });
     }
 
-    // Actualizador de cantidades e invocador del Toast
     function updateQuantity(id, change) {
       const item = designs.find(d => d.id === id);
       if (!item) return;
@@ -367,7 +376,6 @@
           qtyElement.textContent = newQty;
         }
 
-        // Si se incrementó la cantidad, lanza el Toast
         if (change > 0) {
           const totalAcumulado = (newQty * item.price).toFixed(2);
           showToast(`🧵 ${item.name} agregado. Total acumulado: $${totalAcumulado}`);
@@ -375,7 +383,6 @@
       }
     }
 
-    // Sistema de notificaciones Toast flotantes
     function showToast(message) {
       const toast = document.createElement("div");
       toast.className = "toast";
@@ -391,7 +398,6 @@
       }, 2000);
     }
 
-    // Manejador de eventos para los filtros (Chips)
     filterContainer.addEventListener("click", (e) => {
       if (e.target.classList.contains("chip-btn")) {
         document.querySelectorAll(".chip-btn").forEach(btn => btn.classList.remove("active"));
@@ -400,8 +406,11 @@
       }
     });
 
-    // Carga inicial
     renderCards("todas");
   </script>
 </body>
 </html>
+""",
+    height=1200,
+    scrolling=True
+)
