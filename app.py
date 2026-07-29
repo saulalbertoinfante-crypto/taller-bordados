@@ -20,7 +20,9 @@ HTML_CODE = """
             padding: 20px;
             max-width: 1400px;
             margin: 0 auto;
-            overflow-y: auto; /* Solo scroll de la página, controlado por Streamlit */
+            /* Eliminamos cualquier overflow oculto para que el scroll sea natural */
+            overflow-y: auto;
+            height: auto;
         }
         .header {
             margin-bottom: 30px;
@@ -146,7 +148,7 @@ HTML_CODE = """
             backdrop-filter: blur(4px);
         }
 
-        /* Info inferior de la tarjeta (controles) - ya no flota sobre la imagen */
+        /* Info inferior de la tarjeta (controles) */
         .pin-footer {
             padding: 12px 15px 15px 15px;
             background: white;
@@ -168,7 +170,7 @@ HTML_CODE = """
             margin-right: 10px;
         }
 
-        /* Control de cantidad (fuera de la imagen) */
+        /* Control de cantidad */
         .quantity-control {
             display: flex;
             align-items: center;
@@ -253,7 +255,7 @@ HTML_CODE = """
             max-width: 500px;
             width: 100%;
             max-height: 90vh;
-            overflow-y: auto; /* Scroll interno solo si es necesario */
+            overflow-y: auto;
             padding: 30px;
             border-radius: 24px;
             box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
@@ -630,12 +632,12 @@ HTML_CODE = """
             fileNombre.textContent = '';
 
             modalOverlay.classList.add('active');
-            document.body.style.overflow = 'hidden';
+            document.body.style.overflow = 'hidden'; // Evita scroll del body cuando el modal está abierto
         }
 
         function cerrarModal() {
             modalOverlay.classList.remove('active');
-            document.body.style.overflow = '';
+            document.body.style.overflow = ''; // Restaura scroll del body
             currentProductId = null;
         }
 
@@ -708,4 +710,5 @@ HTML_CODE = """
 """
 
 st.set_page_config(page_title="Catálogo de Bordados", layout="wide")
-st.components.v1.html(HTML_CODE, height=1200, scrolling=True)
+# Eliminamos la altura fija para que el componente ocupe todo el espacio disponible
+st.components.v1.html(HTML_CODE, height=None, scrolling=False)
