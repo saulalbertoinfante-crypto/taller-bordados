@@ -20,8 +20,7 @@ HTML_CODE = """
             padding: 20px;
             max-width: 1400px;
             margin: 0 auto;
-            /* Eliminamos cualquier overflow oculto para que el scroll sea natural */
-            overflow-y: auto;
+            overflow: hidden; /* Evita scroll de la página, solo el iframe */
             height: auto;
         }
         .header {
@@ -632,12 +631,12 @@ HTML_CODE = """
             fileNombre.textContent = '';
 
             modalOverlay.classList.add('active');
-            document.body.style.overflow = 'hidden'; // Evita scroll del body cuando el modal está abierto
+            document.body.style.overflow = 'hidden';
         }
 
         function cerrarModal() {
             modalOverlay.classList.remove('active');
-            document.body.style.overflow = ''; // Restaura scroll del body
+            document.body.style.overflow = '';
             currentProductId = null;
         }
 
@@ -710,5 +709,4 @@ HTML_CODE = """
 """
 
 st.set_page_config(page_title="Catálogo de Bordados", layout="wide")
-# Eliminamos la altura fija para que el componente ocupe todo el espacio disponible
-st.components.v1.html(HTML_CODE, height=None, scrolling=False)
+st.components.v1.html(HTML_CODE, height=1400, scrolling=True)
