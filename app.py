@@ -1,14 +1,14 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-# Configuración básica de la página en Streamlit
+# Configuración de página ancha en Streamlit
 st.set_page_config(
-    page_title="Muro de Inspiración",
+    page_title="Catálogo de Diseños",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# Renderizar el HTML/CSS/JS dentro de Streamlit
+# Renderizado de la App Visual en HTML/CSS/JS
 components.html(
     """
 <!DOCTYPE html>
@@ -16,31 +16,31 @@ components.html(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Muro de Inspiración - Catálogo de Bordados</title>
+  <title>Catálogo de Diseños</title>
   <style>
-    /* RESET Y VARIABLES DE MARCA */
+    /* VARIABLES Y PALETA DE COLORES AZULES */
     :root {
       --primary: #1A5F7A;
       --secondary: #22A39F;
       --bg-light: #F8FAFC;
-      --text-main: #0F172A;
+      --text-dark: #0F172A;
       --text-muted: #64748B;
-      --border-light: #CBD5E1;
-      --shadow-card: 0 4px 15px rgba(0, 0, 0, 0.05);
-      --shadow-hover: 0 20px 30px -10px rgba(0, 0, 0, 0.2);
+      --border-color: #CBD5E1;
+      --shadow-sm: 0 4px 15px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 20px 30px -10px rgba(0, 0, 0, 0.22);
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     body {
       background-color: var(--bg-light);
-      color: var(--text-main);
-      padding: 20px 10px;
+      color: var(--text-dark);
+      padding: 20px 15px;
     }
 
     .container {
@@ -48,38 +48,43 @@ components.html(
       margin: 0 auto;
     }
 
-    /* HEADER */
+    /* 1. HEADER */
     header {
-      margin-bottom: 25px;
       text-align: center;
+      margin-bottom: 25px;
     }
 
     header h1 {
       font-size: 2.2rem;
       color: var(--primary);
-      font-weight: 700;
-      letter-spacing: -0.5px;
+      font-weight: 800;
     }
 
-    /* 1. FILTROS EN PÍLDORAS (CHIPS) */
-    .filter-container {
+    header p {
+      font-size: 1rem;
+      color: var(--text-muted);
+      margin-top: 5px;
+    }
+
+    /* 2. FILTROS EN PÍLDORAS */
+    .filter-bar {
       display: flex;
       justify-content: center;
       gap: 10px;
       flex-wrap: wrap;
-      margin-bottom: 30px;
+      margin-bottom: 35px;
     }
 
     .chip-btn {
-      background: transparent;
-      border: 1px solid var(--border-light);
+      background: #FFFFFF;
+      border: 1px solid var(--border-color);
       color: var(--text-muted);
-      padding: 8px 20px;
-      border-radius: 30px;
+      padding: 8px 22px;
+      border-radius: 50px;
       font-size: 0.95rem;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.25s ease;
       outline: none;
     }
 
@@ -92,64 +97,64 @@ components.html(
       background-color: var(--primary);
       border-color: var(--primary);
       color: #FFFFFF;
-      box-shadow: 0 4px 10px rgba(26, 95, 122, 0.25);
+      box-shadow: 0 4px 12px rgba(26, 95, 122, 0.3);
     }
 
-    /* 2. LAYOUT MASONRY PINTEREST */
-    .masonry-grid {
+    /* 3. MURO MASONRY PINTEREST */
+    .masonry-wall {
       column-count: 3;
       column-gap: 20px;
     }
 
     @media (max-width: 768px) {
-      .masonry-grid {
+      .masonry-wall {
         column-count: 2;
         column-gap: 15px;
       }
     }
 
     @media (max-width: 480px) {
-      .masonry-grid {
+      .masonry-wall {
         column-count: 1;
       }
     }
 
-    /* 3 & 5. TARJETA, OVERLAY Y HOVER EFFECT */
+    /* 4 & 6. LA TARJETA Y EFECTO HOVER */
     .card {
       position: relative;
       margin-bottom: 20px;
       border-radius: 16px;
       overflow: hidden;
       background-color: #FFFFFF;
-      box-shadow: var(--shadow-card);
+      box-shadow: var(--shadow-sm);
       break-inside: avoid;
       -webkit-column-break-inside: avoid;
-      transition: box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .card:hover {
-      box-shadow: var(--shadow-hover);
+      box-shadow: var(--shadow-lg);
     }
 
-    .card-image-wrapper {
+    .card-img-wrapper {
       position: relative;
       width: 100%;
       overflow: hidden;
       display: block;
     }
 
-    .card-image-wrapper img {
+    .card-img-wrapper img {
       width: 100%;
       height: auto;
       display: block;
       transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    .card:hover .card-image-wrapper img {
+    .card:hover .card-img-wrapper img {
       transform: scale(1.03);
     }
 
-    /* 6. BADGE PERSONALIZABLE */
+    /* BADGE PERSONALIZABLE */
     .badge-custom {
       position: absolute;
       top: 12px;
@@ -158,23 +163,20 @@ components.html(
       color: #FFFFFF;
       font-size: 0.75rem;
       font-weight: 600;
-      padding: 5px 12px;
+      padding: 6px 14px;
       border-radius: 20px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
       z-index: 2;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
 
-    /* DEGRADADO Y DATOS DE LA TARJETA */
+    /* OVERLAY Y TEXTO DEGRADADO */
     .card-overlay {
       position: absolute;
       bottom: 0;
       left: 0;
       right: 0;
-      padding: 40px 16px 16px 16px;
-      background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+      padding: 50px 16px 16px 16px;
+      background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
@@ -187,10 +189,10 @@ components.html(
     }
 
     .card-title {
-      font-size: 1rem;
-      font-weight: 600;
+      font-size: 1.05rem;
+      font-weight: 700;
       margin-bottom: 2px;
-      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+      text-shadow: 0 1px 3px rgba(0,0,0,0.5);
     }
 
     .card-price {
@@ -199,18 +201,18 @@ components.html(
       opacity: 0.9;
     }
 
-    /* 3. CONTROLADOR DE CANTIDAD FLOTANTE */
-    .quantity-control {
+    /* SELECTOR DE CANTIDAD FLOTANTE */
+    .qty-controls {
       pointer-events: auto;
-      background: rgba(255, 255, 255, 0.85);
+      background: rgba(255, 255, 255, 0.9);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
       border-radius: 30px;
       display: flex;
       align-items: center;
-      padding: 3px;
+      padding: 4px;
       gap: 6px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
 
     .btn-qty {
@@ -221,18 +223,18 @@ components.html(
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1rem;
+      font-weight: bold;
       cursor: pointer;
       transition: background-color 0.2s, color 0.2s;
     }
 
     .btn-minus {
       background: transparent;
-      color: var(--text-main);
+      color: var(--text-dark);
     }
 
     .btn-minus:hover {
-      background: rgba(0, 0, 0, 0.08);
+      background: rgba(0, 0, 0, 0.1);
     }
 
     .btn-plus {
@@ -241,18 +243,18 @@ components.html(
     }
 
     .btn-plus:hover {
-      background-color: #14495e;
+      background-color: #124357;
     }
 
-    .qty-display {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--text-main);
-      min-width: 14px;
+    .qty-val {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-dark);
+      min-width: 16px;
       text-align: center;
     }
 
-    /* 4. TOAST NOTIFICACIÓN */
+    /* 5. MENSAJE TOAST EMERGENTE */
     .toast-container {
       position: fixed;
       bottom: 24px;
@@ -266,15 +268,15 @@ components.html(
     .toast {
       background-color: var(--primary);
       color: #FFFFFF;
-      padding: 12px 20px;
-      border-radius: 10px;
-      font-size: 0.9rem;
+      padding: 14px 22px;
+      border-radius: 12px;
+      font-size: 0.95rem;
       font-weight: 500;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-      animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+      animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
 
-    @keyframes slideIn {
+    @keyframes slideUp {
       from {
         opacity: 0;
         transform: translateY(20px);
@@ -290,11 +292,12 @@ components.html(
 
   <div class="container">
     <header>
-      <h1>Un muro de inspiración</h1>
+      <h1>Catálogo de Diseños</h1>
+      <p>Explora y agrega a tu cotización</p>
     </header>
 
-    <!-- Píldoras de Filtros -->
-    <div class="filter-container" id="filterContainer">
+    <!-- Filtros Píldora -->
+    <div class="filter-bar" id="filterBar">
       <button class="chip-btn active" data-category="todas">Todas</button>
       <button class="chip-btn" data-category="animales">Animales</button>
       <button class="chip-btn" data-category="floral">Floral</button>
@@ -304,89 +307,86 @@ components.html(
     </div>
 
     <!-- Muro Masonry -->
-    <div class="masonry-grid" id="masonryGrid"></div>
+    <div class="masonry-wall" id="masonryWall"></div>
   </div>
 
   <div class="toast-container" id="toastContainer"></div>
 
   <script>
-    const designs = [
-      { id: 1, name: "Mariposa Monarca", category: "animales", price: 5.00, image: "https://via.placeholder.com/300x400/1A5F7A/FFFFFF?text=Mariposa", personalizable: false },
-      { id: 2, name: "Ramo Floral", category: "floral", price: 6.50, image: "https://via.placeholder.com/300x300/22A39F/FFFFFF?text=Ramo", personalizable: false },
-      { id: 3, name: "Iniciales", category: "letras", price: 4.00, image: "https://via.placeholder.com/300x500/AEE2FF/1A5F7A?text=Iniciales", personalizable: true },
-      { id: 4, name: "Águila Real", category: "animales", price: 8.00, image: "https://via.placeholder.com/300x350/1A5F7A/FFFFFF?text=Águila", personalizable: false },
-      { id: 5, name: "Mandala Geométrico", category: "geometrico", price: 7.00, image: "https://via.placeholder.com/300x250/22A39F/FFFFFF?text=Mandala", personalizable: false },
-      { id: 6, name: "Nombre Personalizado", category: "nombres", price: 4.00, image: "https://via.placeholder.com/300x450/AEE2FF/1A5F7A?text=Nombre", personalizable: true }
+    const productos = [
+      { id: 1, nombre: "Mariposa Monarca", categoria: "animales", precio: 5.00, imagen: "https://picsum.photos/seed/mariposa/300/400", personalizable: false },
+      { id: 2, nombre: "Ramo Floral", categoria: "floral", precio: 6.50, imagen: "https://picsum.photos/seed/ramo/300/350", personalizable: false },
+      { id: 3, nombre: "Iniciales", categoria: "letras", precio: 4.00, imagen: "https://picsum.photos/seed/inicial/300/450", personalizable: true },
+      { id: 4, nombre: "Águila Real", categoria: "animales", precio: 8.00, imagen: "https://picsum.photos/seed/aguila/300/380", personalizable: false },
+      { id: 5, nombre: "Mandala", categoria: "geometrico", precio: 7.00, imagen: "https://picsum.photos/seed/mandala/300/320", personalizable: false },
+      { id: 6, nombre: "Nombre Propio", categoria: "nombres", precio: 4.00, imagen: "https://picsum.photos/seed/nombre/300/480", personalizable: true }
     ];
 
-    const quantities = {};
-    designs.forEach(item => { quantities[item.id] = 0; });
+    const carrito = {};
+    productos.forEach(item => { carrito[item.id] = 0; });
 
-    const masonryGrid = document.getElementById("masonryGrid");
-    const filterContainer = document.getElementById("filterContainer");
+    const wall = document.getElementById("masonryWall");
+    const filterBar = document.getElementById("filterBar");
     const toastContainer = document.getElementById("toastContainer");
 
-    function renderCards(category = "todas") {
-      masonryGrid.innerHTML = "";
+    function renderProducts(cat = "todas") {
+      wall.innerHTML = "";
       
-      const filtered = category === "todas" 
-        ? designs 
-        : designs.filter(d => d.category.toLowerCase() === category.toLowerCase());
+      const filtered = cat === "todas" 
+        ? productos 
+        : productos.filter(p => p.categoria.toLowerCase() === cat.toLowerCase());
 
-      filtered.forEach(item => {
+      filtered.forEach(p => {
         const card = document.createElement("div");
         card.className = "card";
 
-        const badgeHtml = item.personalizable 
-          ? `<div class="badge-custom"><span>✏️</span> Personalizable</div>` 
+        const badgeHtml = p.personalizable 
+          ? `<div class="badge-custom">✏️ Personalizable</div>` 
           : "";
 
         card.innerHTML = `
-          <div class="card-image-wrapper">
+          <div class="card-img-wrapper">
             ${badgeHtml}
-            <img src="${item.image}" alt="${item.name}" loading="lazy">
+            <img src="${p.imagen}" alt="${p.nombre}" loading="lazy">
             <div class="card-overlay">
               <div class="card-info">
-                <div class="card-title">${item.name}</div>
-                <div class="card-price">$${item.price.toFixed(2)}</div>
+                <div class="card-title">${p.nombre}</div>
+                <div class="card-price">$${p.precio.toFixed(2)}</div>
               </div>
-              <div class="quantity-control">
-                <button class="btn-qty btn-minus" onclick="updateQuantity(${item.id}, -1)">−</button>
-                <span class="qty-display" id="qty-${item.id}">${quantities[item.id]}</span>
-                <button class="btn-qty btn-plus" onclick="updateQuantity(${item.id}, 1)">+</button>
+              <div class="qty-controls">
+                <button class="btn-qty btn-minus" onclick="changeQty(${p.id}, -1)">−</button>
+                <span class="qty-val" id="qty-${p.id}">${carrito[p.id]}</span>
+                <button class="btn-qty btn-plus" onclick="changeQty(${p.id}, 1)">+</button>
               </div>
             </div>
           </div>
         `;
-        masonryGrid.appendChild(card);
+        wall.appendChild(card);
       });
     }
 
-    function updateQuantity(id, change) {
-      const item = designs.find(d => d.id === id);
-      if (!item) return;
+    function changeQty(id, delta) {
+      const prod = productos.find(p => p.id === id);
+      if (!prod) return;
 
-      const currentQty = quantities[id] || 0;
-      const newQty = Math.max(0, currentQty + change);
+      const current = carrito[id] || 0;
+      const next = Math.max(0, current + delta);
 
-      if (currentQty !== newQty) {
-        quantities[id] = newQty;
-        const qtyElement = document.getElementById(`qty-${id}`);
-        if (qtyElement) {
-          qtyElement.textContent = newQty;
-        }
+      if (current !== next) {
+        carrito[id] = next;
+        const elem = document.getElementById(`qty-${id}`);
+        if (elem) elem.textContent = next;
 
-        if (change > 0) {
-          const totalAcumulado = (newQty * item.price).toFixed(2);
-          showToast(`🧵 ${item.name} agregado. Total acumulado: $${totalAcumulado}`);
+        if (delta > 0) {
+          triggerToast(`Agregaste ${prod.nombre}`);
         }
       }
     }
 
-    function showToast(message) {
+    function triggerToast(text) {
       const toast = document.createElement("div");
       toast.className = "toast";
-      toast.textContent = message;
+      toast.textContent = text;
 
       toastContainer.appendChild(toast);
 
@@ -398,19 +398,19 @@ components.html(
       }, 2000);
     }
 
-    filterContainer.addEventListener("click", (e) => {
+    filterBar.addEventListener("click", (e) => {
       if (e.target.classList.contains("chip-btn")) {
-        document.querySelectorAll(".chip-btn").forEach(btn => btn.classList.remove("active"));
+        document.querySelectorAll(".chip-btn").forEach(b => b.classList.remove("active"));
         e.target.classList.add("active");
-        renderCards(e.target.dataset.category);
+        renderProducts(e.target.dataset.category);
       }
     });
 
-    renderCards("todas");
+    renderProducts("todas");
   </script>
 </body>
 </html>
 """,
-    height=1200,
+    height=1300,
     scrolling=True
 )
