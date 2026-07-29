@@ -1,735 +1,769 @@
+from flask import Flask, render_template_string
+
+app = Flask(__name__)
+
+# TODA la interfaz (HTML, CSS y JS) va DENTRO de estas triples comillas
+HTML_CODE = """
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Catálogo de Bordados - Muro de Inspiración</title>
-  <style>
-    /* VARIABLES Y PALETA DE COLORES */
-    :root {
-      --primary: #1A5F7A;
-      --secondary: #22A39F;
-      --bg-light: #F8FAFC;
-      --text-dark: #0F172A;
-      --text-muted: #64748B;
-      --border-color: #CBD5E1;
-      --shadow-sm: 0 4px 15px rgba(0, 0, 0, 0.06);
-      --shadow-lg: 0 20px 30px -10px rgba(0, 0, 0, 0.22);
-      --success: #10B981;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo de Bordados</title>
+    <style>
+        /* ----- RESET Y ESTILOS GENERALES (CORREGIDOS) ----- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        body {
+            background-color: #F8FAFC;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        /* Header */
+        .header {
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 2rem;
+            color: #1A5F7A;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        .header p {
+            color: #64748B;
+            font-size: 1.1rem;
+            margin-top: 5px;
+        }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
+        /* ----- FILTROS (PÍLDORAS) ----- */
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #E2E8F0;
+            padding-bottom: 15px;
+        }
+        .filter-btn {
+            padding: 8px 20px;
+            border-radius: 30px;
+            border: 1.5px solid #CBD5E1;
+            background: transparent;
+            color: #64748B;
+            font-weight: 500;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .filter-btn:hover {
+            border-color: #1A5F7A;
+            color: #1A5F7A;
+        }
+        .filter-btn.active {
+            background: #1A5F7A;
+            border-color: #1A5F7A;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 4px 10px rgba(26, 95, 122, 0.3);
+        }
 
-    body {
-      background-color: var(--bg-light);
-      color: var(--text-dark);
-      padding: 20px 15px 100px 15px;
-    }
+        /* ----- MURO (MASONRY) ----- */
+        .masonry {
+            column-count: 3;
+            column-gap: 20px;
+            margin-bottom: 40px;
+        }
 
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
+        /* ----- TARJETA (PIN) ----- */
+        .pin {
+            break-inside: avoid;
+            margin-bottom: 20px;
+            border-radius: 16px;
+            overflow: hidden;
+            background: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+            transition: all 0.3s ease;
+            position: relative;
+            cursor: pointer;
+        }
+        .pin:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.15);
+        }
+        .pin:hover img {
+            transform: scale(1.03);
+        }
+        .pin img {
+            width: 100%;
+            display: block;
+            transition: transform 0.4s ease;
+        }
 
-    /* HEADER */
-    header {
-      text-align: center;
-      margin-bottom: 25px;
-    }
+        /* Contenedor de la imagen (para overlays) */
+        .pin-image-wrapper {
+            position: relative;
+        }
 
-    header h1 {
-      font-size: 2.2rem;
-      color: var(--primary);
-      font-weight: 800;
-    }
+        /* Badge "Personalizable" */
+        .badge-personalizable {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: #22A39F;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 20px;
+            letter-spacing: 0.3px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            z-index: 5;
+            box-shadow: 0 2px 8px rgba(34, 163, 159, 0.4);
+        }
 
-    header p {
-      font-size: 1rem;
-      color: var(--text-muted);
-      margin-top: 5px;
-    }
+        /* Overlay inferior (nombre + precio) */
+        .pin-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 30px 15px 15px 15px;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            pointer-events: none;
+        }
+        .pin-nombre {
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .pin-precio {
+            color: white;
+            font-weight: 700;
+            font-size: 1.1rem;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 12px;
+            border-radius: 20px;
+            backdrop-filter: blur(4px);
+        }
 
-    /* FILTROS EN PÍLDORAS */
-    .filter-bar {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 30px;
-    }
+        /* ----- CONTROL DE CANTIDAD (DENTRO DE LA IMAGEN) ----- */
+        .quantity-control {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 4px 6px;
+            border-radius: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 10;
+            pointer-events: auto;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        .quantity-control button {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            font-size: 1.2rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .qty-minus {
+            background: transparent;
+            color: #1A5F7A;
+            border: 1.5px solid #CBD5E1 !important;
+        }
+        .qty-minus:hover {
+            background: #F1F5F9;
+        }
+        .qty-number {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #1A5F7A;
+            min-width: 24px;
+            text-align: center;
+        }
+        .qty-plus {
+            background: #1A5F7A;
+            color: white;
+            box-shadow: 0 2px 8px rgba(26, 95, 122, 0.4);
+        }
+        .qty-plus:hover {
+            background: #0f4a5e;
+            transform: scale(1.05);
+        }
 
-    .chip-btn {
-      background: #FFFFFF;
-      border: 1px solid var(--border-color);
-      color: var(--text-muted);
-      padding: 8px 22px;
-      border-radius: 50px;
-      font-size: 0.95rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.25s ease;
-      outline: none;
-    }
+        /* ----- BOTÓN FLOTANTE DEL CARRITO ----- */
+        .cart-float {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 100;
+            background: #1A5F7A;
+            color: white;
+            border: none;
+            padding: 16px 28px;
+            border-radius: 60px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            box-shadow: 0 8px 30px rgba(26, 95, 122, 0.5);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.3s ease;
+        }
+        .cart-float:hover {
+            transform: scale(1.05);
+            background: #0f4a5e;
+        }
+        .cart-float .total-badge {
+            background: white;
+            color: #1A5F7A;
+            padding: 2px 12px;
+            border-radius: 30px;
+            font-weight: 700;
+        }
 
-    .chip-btn:hover {
-      border-color: var(--primary);
-      color: var(--primary);
-    }
+        /* ----- TOAST (NOTIFICACIÓN) ----- */
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            background: #1A5F7A;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            font-weight: 500;
+            z-index: 200;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.4s ease;
+            pointer-events: none;
+            border-left: 5px solid #22A39F;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
 
-    .chip-btn.active {
-      background-color: var(--primary);
-      border-color: var(--primary);
-      color: #FFFFFF;
-      box-shadow: 0 4px 12px rgba(26, 95, 122, 0.3);
-    }
+        /* ----- MODAL (CHECKOUT) ----- */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(6px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 35px;
+            border-radius: 24px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.3);
+            animation: fadeInUp 0.3s ease;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: scale(0.95) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .modal-content h2 {
+            color: #1A5F7A;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #E2E8F0;
+            padding-bottom: 10px;
+        }
+        .modal-resumen {
+            background: #F8FAFC;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .modal-resumen-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px dashed #E2E8F0;
+            font-size: 0.95rem;
+        }
+        .modal-resumen-item:last-child {
+            border-bottom: none;
+        }
+        .modal-total {
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #1A5F7A;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 2px solid #1A5F7A;
+        }
+        .form-group {
+            margin-bottom: 18px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #1A2B3C;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1.5px solid #E2E8F0;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #1A5F7A;
+            box-shadow: 0 0 0 3px rgba(26, 95, 122, 0.1);
+        }
+        .payment-options {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .payment-options button {
+            padding: 10px 20px;
+            border-radius: 30px;
+            border: 2px solid #E2E8F0;
+            background: white;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            flex: 1;
+            min-width: 80px;
+        }
+        .payment-options button.selected {
+            border-color: #1A5F7A;
+            background: #EFF6FF;
+            color: #1A5F7A;
+            font-weight: 600;
+            box-shadow: 0 0 0 3px rgba(26, 95, 122, 0.15);
+        }
+        .file-upload {
+            border: 2px dashed #CBD5E1;
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .file-upload:hover {
+            border-color: #1A5F7A;
+            background: #F8FAFC;
+        }
+        .file-upload input {
+            display: none;
+        }
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background: #1A5F7A;
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 10px;
+        }
+        .btn-submit:hover {
+            background: #0f4a5e;
+        }
+        .btn-close-modal {
+            background: transparent;
+            border: none;
+            font-size: 1.5rem;
+            float: right;
+            cursor: pointer;
+            color: #94A3B8;
+        }
 
-    /* PILAR 1: MURO MASONRY PINTEREST */
-    .masonry-wall {
-      column-count: 3;
-      column-gap: 20px;
-    }
-
-    @media (max-width: 768px) {
-      .masonry-wall {
-        column-count: 2;
-        column-gap: 15px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .masonry-wall {
-        column-count: 1;
-      }
-    }
-
-    /* LA TARJETA Y EFECTO HOVER */
-    .card {
-      position: relative;
-      margin-bottom: 20px;
-      border-radius: 16px;
-      overflow: hidden;
-      background-color: #FFFFFF;
-      box-shadow: var(--shadow-sm);
-      break-inside: avoid;
-      -webkit-column-break-inside: avoid;
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .card:hover {
-      box-shadow: var(--shadow-lg);
-    }
-
-    .card-img-wrapper {
-      position: relative;
-      width: 100%;
-      overflow: hidden;
-      display: block;
-    }
-
-    .card-img-wrapper img {
-      width: 100%;
-      height: auto;
-      display: block;
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .card:hover .card-img-wrapper img {
-      transform: scale(1.03);
-    }
-
-    /* BADGE PERSONALIZABLE */
-    .badge-custom {
-      position: absolute;
-      top: 12px;
-      left: 12px;
-      background-color: var(--secondary);
-      color: #FFFFFF;
-      font-size: 0.75rem;
-      font-weight: 600;
-      padding: 6px 14px;
-      border-radius: 20px;
-      z-index: 2;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    }
-
-    /* OVERLAY Y TEXTO DEGRADADO */
-    .card-overlay {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      padding: 50px 16px 16px 16px;
-      background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      z-index: 1;
-      pointer-events: none;
-    }
-
-    .card-info {
-      color: #FFFFFF;
-    }
-
-    .card-title {
-      font-size: 1.05rem;
-      font-weight: 700;
-      margin-bottom: 2px;
-      text-shadow: 0 1px 3px rgba(0,0,0,0.5);
-    }
-
-    .card-price {
-      font-size: 0.9rem;
-      font-weight: 400;
-      opacity: 0.9;
-    }
-
-    /* SELECTOR DE CANTIDAD FLOTANTE */
-    .qty-controls {
-      pointer-events: auto;
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      border-radius: 30px;
-      display: flex;
-      align-items: center;
-      padding: 4px;
-      gap: 6px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    }
-
-    .btn-qty {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      border: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background-color 0.2s, color 0.2s;
-    }
-
-    .btn-minus {
-      background: #E2E8F0;
-      color: var(--text-dark);
-    }
-
-    .btn-minus:hover {
-      background: #CBD5E1;
-    }
-
-    .btn-plus {
-      background-color: var(--primary);
-      color: #FFFFFF;
-    }
-
-    .btn-plus:hover {
-      background-color: #124357;
-    }
-
-    .qty-val {
-      font-size: 0.9rem;
-      font-weight: 700;
-      color: var(--text-dark);
-      min-width: 16px;
-      text-align: center;
-    }
-
-    /* BOTÓN BARRA FLOTANTE CHECKOUT */
-    .checkout-floating-bar {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 100;
-      width: 90%;
-      max-width: 500px;
-    }
-
-    .btn-checkout-trigger {
-      width: 100%;
-      background-color: var(--primary);
-      color: #FFFFFF;
-      border: none;
-      padding: 16px 24px;
-      border-radius: 50px;
-      font-size: 1.1rem;
-      font-weight: 700;
-      cursor: pointer;
-      box-shadow: 0 10px 25px rgba(26, 95, 122, 0.4);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      transition: transform 0.2s, background-color 0.2s;
-    }
-
-    .btn-checkout-trigger:hover {
-      background-color: #124357;
-      transform: scale(1.02);
-    }
-
-    .cart-badge-count {
-      background-color: var(--secondary);
-      color: #FFFFFF;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 0.9rem;
-    }
-
-    /* PILAR 3: MODAL DE CHECKOUT */
-    .modal-backdrop {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(15, 23, 42, 0.6);
-      backdrop-filter: blur(4px);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-      padding: 15px;
-    }
-
-    .modal-backdrop.active {
-      display: flex;
-    }
-
-    .modal-content {
-      background: #FFFFFF;
-      width: 100%;
-      max-width: 600px;
-      max-height: 90vh;
-      border-radius: 24px;
-      overflow-y: auto;
-      padding: 25px;
-      box-shadow: var(--shadow-lg);
-      position: relative;
-      animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    @keyframes modalSlideUp {
-      from { opacity: 0; transform: translateY(30px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-      border-bottom: 1px solid var(--border-color);
-      padding-bottom: 12px;
-    }
-
-    .modal-header h2 {
-      font-size: 1.4rem;
-      color: var(--primary);
-    }
-
-    .btn-close-modal {
-      background: none;
-      border: none;
-      font-size: 1.5rem;
-      cursor: pointer;
-      color: var(--text-muted);
-    }
-
-    /* RESUMEN DE COMPRA EN TABLA */
-    .order-summary-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 20px;
-    }
-
-    .order-summary-table th, .order-summary-table td {
-      padding: 10px 8px;
-      text-align: left;
-      border-bottom: 1px solid var(--border-color);
-      font-size: 0.9rem;
-    }
-
-    .order-summary-table th {
-      color: var(--text-muted);
-      font-weight: 600;
-    }
-
-    .total-row {
-      font-size: 1.1rem !important;
-      font-weight: 800;
-      color: var(--primary);
-    }
-
-    /* FORMULARIO DE CLIENTE */
-    .form-group {
-      margin-bottom: 16px;
-    }
-
-    .form-group label {
-      display: block;
-      font-size: 0.85rem;
-      font-weight: 600;
-      margin-bottom: 6px;
-      color: var(--text-dark);
-    }
-
-    .form-control {
-      width: 100%;
-      padding: 10px 14px;
-      border: 1px solid var(--border-color);
-      border-radius: 10px;
-      font-size: 0.95rem;
-      outline: none;
-    }
-
-    .form-control:focus {
-      border-color: var(--primary);
-    }
-
-    /* OPCIONES DE PAGO EN BOTONES CIRCULARES/PÍLDORAS */
-    .payment-options {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-top: 6px;
-    }
-
-    .payment-btn {
-      flex: 1;
-      min-width: 100px;
-      padding: 10px;
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      background: #FFFFFF;
-      text-align: center;
-      cursor: pointer;
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      transition: all 0.2s;
-    }
-
-    .payment-btn.selected {
-      border-color: var(--primary);
-      border-width: 2px;
-      color: var(--primary);
-      background: rgba(26, 95, 122, 0.05);
-    }
-
-    /* AREA DRAG & DROP FILE UPLOAD */
-    .file-drop-area {
-      border: 2px dashed var(--border-color);
-      border-radius: 12px;
-      padding: 20px;
-      text-align: center;
-      cursor: pointer;
-      background: var(--bg-light);
-      transition: border-color 0.2s;
-    }
-
-    .file-drop-area:hover {
-      border-color: var(--primary);
-    }
-
-    .file-drop-area input[type="file"] {
-      display: none;
-    }
-
-    .btn-submit-order {
-      width: 100%;
-      background-color: var(--success);
-      color: #FFFFFF;
-      border: none;
-      padding: 14px;
-      border-radius: 12px;
-      font-size: 1.05rem;
-      font-weight: 700;
-      cursor: pointer;
-      margin-top: 15px;
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-      transition: background-color 0.2s;
-    }
-
-    .btn-submit-order:hover {
-      background-color: #059669;
-    }
-  </style>
+        /* ----- RESPONSIVE ----- */
+        @media (max-width: 768px) {
+            .masonry { column-count: 2; column-gap: 12px; }
+            .header h1 { font-size: 1.6rem; }
+            .cart-float { padding: 12px 20px; font-size: 0.9rem; bottom: 20px; right: 20px; }
+            .modal-content { padding: 25px; margin: 10px; }
+            .quantity-control { bottom: 10px; right: 10px; }
+            .quantity-control button { width: 28px; height: 28px; font-size: 1rem; }
+            .pin-overlay { padding: 20px 10px 10px 10px; }
+            .pin-nombre { font-size: 0.85rem; }
+            .pin-precio { font-size: 0.9rem; }
+        }
+        @media (max-width: 480px) {
+            .masonry { column-count: 2; column-gap: 8px; }
+            .filter-btn { padding: 6px 14px; font-size: 0.8rem; }
+        }
+    </style>
 </head>
 <body>
 
-  <div class="container">
-    <header>
-      <h1>Catálogo de Bordados</h1>
-      <p>Explora nuestros diseños y personaliza tu pedido</p>
-    </header>
-
-    <!-- Filtros por Categoría -->
-    <div class="filter-bar" id="filterBar">
-      <button class="chip-btn active" data-category="todas">Todas</button>
-      <button class="chip-btn" data-category="animales">Animales</button>
-      <button class="chip-btn" data-category="floral">Floral</button>
-      <button class="chip-btn" data-category="letras">Letras</button>
-      <button class="chip-btn" data-category="geometrico">Geométrico</button>
-      <button class="chip-btn" data-category="nombres">Nombres</button>
+    <!-- HEADER -->
+    <div class="header">
+        <h1>🧵 Catálogo de Diseños</h1>
+        <p>Un muro de inspiración — ajusta cantidades y agrega a tu pedido.</p>
     </div>
 
-    <!-- Muro Masonry -->
-    <div class="masonry-wall" id="masonryWall"></div>
-  </div>
+    <!-- FILTROS -->
+    <div class="filters" id="filters">
+        <button class="filter-btn active" data-category="all">Todas</button>
+        <button class="filter-btn" data-category="animales">Animales</button>
+        <button class="filter-btn" data-category="floral">Floral</button>
+        <button class="filter-btn" data-category="geometrico">Geométrico</button>
+        <button class="filter-btn" data-category="letras">Letras</button>
+        <button class="filter-btn" data-category="nombres">Nombres</button>
+    </div>
 
-  <!-- Botón Flotante para Abrir Checkout -->
-  <div class="checkout-floating-bar">
-    <button class="btn-checkout-trigger" onclick="openCheckoutModal()">
-      <span>🛒 Ver Pedido y Finalizar</span>
-      <span class="cart-badge-count" id="cartTotalDisplay">$0.00</span>
+    <!-- MURO MASONRY -->
+    <div class="masonry" id="masonry"></div>
+
+    <!-- TOAST -->
+    <div class="toast" id="toast"></div>
+
+    <!-- BOTÓN FLOTANTE CARRITO -->
+    <button class="cart-float" id="openModalBtn">
+        🛒 Ver Pedido
+        <span class="total-badge" id="cartTotal">$0.00</span>
     </button>
-  </div>
 
-  <!-- Modal de Checkout -->
-  <div class="modal-backdrop" id="checkoutModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Resumen de tu Pedido</h2>
-        <button class="btn-close-modal" onclick="closeCheckoutModal()">&times;</button>
-      </div>
+    <!-- MODAL CHECKOUT -->
+    <div class="modal-overlay" id="checkoutModal">
+        <div class="modal-content">
+            <button class="btn-close-modal" id="closeModalBtn">✕</button>
+            <h2>📋 Finalizar Pedido</h2>
 
-      <!-- Tabla del Carrito -->
-      <table class="order-summary-table">
-        <thead>
-          <tr>
-            <th>Diseño</th>
-            <th>Cant.</th>
-            <th>P. Unit.</th>
-            <th>Subtotal</th>
-          </tr>
-        </thead>
-        <tbody id="cartTableBody">
-          <!-- Inyectado dinámicamente -->
-        </tbody>
-      </table>
-
-      <!-- Formulario del Cliente -->
-      <form id="checkoutForm" onsubmit="handleFormSubmit(event)">
-        <div class="form-group">
-          <label for="clientName">Nombre y Apellido</label>
-          <input type="text" id="clientName" class="form-control" placeholder="Ej: Maria Perez" required>
-        </div>
-
-        <div class="form-group">
-          <label for="personType">Tipo de Persona</label>
-          <select id="personType" class="form-control" required>
-            <option value="Persona Natural">Persona Natural</option>
-            <option value="Empresa">Empresa</option>
-          </select>
-        </div>
-
-        <!-- Método de Pago -->
-        <div class="form-group">
-          <label>Método de Pago</label>
-          <div class="payment-options">
-            <div class="payment-btn selected" onclick="selectPayment(this, 'Yape')">Yape</div>
-            <div class="payment-btn" onclick="selectPayment(this, 'Plin')">Plin</div>
-            <div class="payment-btn" onclick="selectPayment(this, 'Transferencia')">Transferencia</div>
-            <div class="payment-btn" onclick="selectPayment(this, 'Efectivo')">Efectivo</div>
-          </div>
-        </div>
-
-        <!-- Adjuntar Comprobante -->
-        <div class="form-group">
-          <label>Adjuntar Comprobante de Pago</label>
-          <div class="file-drop-area" onclick="document.getElementById('fileInput').click()">
-            <span id="fileNameDisplay">📁 Haz clic o arrastra tu captura de pantalla aquí</span>
-            <input type="file" id="fileInput" accept="image/*" onchange="updateFileName(this)">
-          </div>
-        </div>
-
-        <button type="submit" class="btn-submit-order">Enviar Pedido Formal</button>
-      </form>
-    </div>
-  </div>
-
-  <script>
-    // DATOS EXACTOS
-    const productos = [
-      { id: 1, nombre: "Mariposa Monarca", categoria: "animales", precio: 5.00, imagen: "https://picsum.photos/seed/mariposa/300/450", personalizable: false },
-      { id: 2, nombre: "Ramo Floral", categoria: "floral", precio: 6.50, imagen: "https://picsum.photos/seed/ramo/300/300", personalizable: false },
-      { id: 3, nombre: "Iniciales", categoria: "letras", precio: 4.00, imagen: "https://picsum.photos/seed/inicial/300/500", personalizable: true },
-      { id: 4, nombre: "Águila Real", categoria: "animales", precio: 8.00, imagen: "https://picsum.photos/seed/aguila/300/380", personalizable: false },
-      { id: 5, nombre: "Mandala", categoria: "geometrico", precio: 7.00, imagen: "https://picsum.photos/seed/mandala/300/350", personalizable: false },
-      { id: 6, nombre: "Nombre Propio", categoria: "nombres", precio: 4.00, imagen: "https://picsum.photos/seed/nombre/300/480", personalizable: true }
-    ];
-
-    // ESTADO DEL CARRITO (id -> cantidad)
-    const carrito = {};
-    productos.forEach(p => carrito[p.id] = 0);
-
-    let selectedPaymentMethod = "Yape";
-
-    const wall = document.getElementById("masonryWall");
-    const filterBar = document.getElementById("filterBar");
-
-    // PILAR 1: RENDERIZAR TARJETAS VISUALES
-    function renderProducts(category = "todas") {
-      wall.innerHTML = "";
-      
-      const filtered = category === "todas" 
-        ? productos 
-        : productos.filter(p => p.categoria.toLowerCase() === category.toLowerCase());
-
-      filtered.forEach(p => {
-        const card = document.createElement("div");
-        card.className = "card";
-
-        const badgeHtml = p.personalizable 
-          ? `<div class="badge-custom">✏️ Personalizable</div>` 
-          : "";
-
-        card.innerHTML = `
-          <div class="card-img-wrapper">
-            ${badgeHtml}
-            <img src="${p.imagen}" alt="${p.nombre}" loading="lazy">
-            <div class="card-overlay">
-              <div class="card-info">
-                <div class="card-title">${p.nombre}</div>
-                <div class="card-price">$${p.precio.toFixed(2)}</div>
-              </div>
-              <div class="qty-controls">
-                <button class="btn-qty btn-minus" onclick="changeQty(${p.id}, -1)">−</button>
-                <span class="qty-val" id="qty-${p.id}">${carrito[p.id]}</span>
-                <button class="btn-qty btn-plus" onclick="changeQty(${p.id}, 1)">+</button>
-              </div>
+            <div class="modal-resumen" id="modalResumen">
+                <!-- Se llena con JS -->
             </div>
-          </div>
-        `;
-        wall.appendChild(card);
-      });
-    }
 
-    // PILAR 2: LÓGICA DEL CARRITO Y MULTIPLICACIÓN
-    function changeQty(id, delta) {
-      const current = carrito[id] || 0;
-      const next = Math.max(0, current + delta);
-      
-      carrito[id] = next;
+            <div class="form-group">
+                <label>Nombre y Apellido</label>
+                <input type="text" id="clienteNombre" placeholder="Ej: Ana Pérez">
+            </div>
 
-      // Actualizar DOM individual
-      const qtyElem = document.getElementById(`qty-${id}`);
-      if (qtyElem) qtyElem.textContent = next;
+            <div class="form-group">
+                <label>Tipo de Persona</label>
+                <select id="clienteTipo">
+                    <option value="natural">Persona Natural</option>
+                    <option value="empresa">Empresa</option>
+                </select>
+            </div>
 
-      calculateTotal();
-    }
+            <div class="form-group">
+                <label>Método de Pago</label>
+                <div class="payment-options" id="paymentOptions">
+                    <button data-method="yape">📱 Yape</button>
+                    <button data-method="plin">📱 Plin</button>
+                    <button data-method="transferencia">🏦 Transferencia</button>
+                    <button data-method="efectivo">💵 Efectivo</button>
+                </div>
+            </div>
 
-    function calculateTotal() {
-      let total = 0;
-      productos.forEach(p => {
-        total += (carrito[p.id] || 0) * p.precio;
-      });
+            <div class="form-group">
+                <label>Adjuntar Captura de Pago</label>
+                <div class="file-upload" id="fileUploadBox">
+                    <p>📤 Haz clic para subir o arrastra tu captura</p>
+                    <input type="file" id="fileInput" accept="image/*">
+                </div>
+                <span id="fileNombre" style="font-size:0.9rem; color:#22A39F; display:block; margin-top:5px;"></span>
+            </div>
 
-      document.getElementById("cartTotalDisplay").textContent = `$${total.toFixed(2)}`;
-      return total;
-    }
+            <button class="btn-submit" id="submitPedidoBtn">✅ Enviar Pedido</button>
+        </div>
+    </div>
 
-    // PILAR 3: MANEJO DEL MODAL Y RESUMEN
-    function openCheckoutModal() {
-      const tableBody = document.getElementById("cartTableBody");
-      tableBody.innerHTML = "";
+    <script>
+        // ----- DATOS DE PRODUCTOS -----
+        const productos = [
+            { id: 1, nombre: "Mariposa Monarca", categoria: "animales", precio: 5.00, imagen: "https://picsum.photos/seed/mariposa/300/450", personalizable: false },
+            { id: 2, nombre: "Ramo Floral", categoria: "floral", precio: 6.50, imagen: "https://picsum.photos/seed/ramo/300/320", personalizable: false },
+            { id: 3, nombre: "Iniciales", categoria: "letras", precio: 4.00, imagen: "https://picsum.photos/seed/inicial/300/500", personalizable: true },
+            { id: 4, nombre: "Águila Real", categoria: "animales", precio: 8.00, imagen: "https://picsum.photos/seed/aguila/300/380", personalizable: false },
+            { id: 5, nombre: "Mandala", categoria: "geometrico", precio: 7.00, imagen: "https://picsum.photos/seed/mandala/300/350", personalizable: false },
+            { id: 6, nombre: "Nombre Propio", categoria: "nombres", precio: 4.00, imagen: "https://picsum.photos/seed/nombre/300/480", personalizable: true }
+        ];
 
-      let grandTotal = 0;
-      let hasItems = false;
+        // ----- ESTADO GLOBAL -----
+        let carrito = {}; // { id: cantidad }
 
-      productos.forEach(p => {
-        const qty = carrito[p.id] || 0;
-        if (qty > 0) {
-          hasItems = true;
-          const subtotal = qty * p.precio;
-          grandTotal += subtotal;
+        // ----- REFERENCIAS DOM -----
+        const masonry = document.getElementById('masonry');
+        const toast = document.getElementById('toast');
+        const cartTotalSpan = document.getElementById('cartTotal');
+        const modal = document.getElementById('checkoutModal');
+        const modalResumen = document.getElementById('modalResumen');
+        const openModalBtn = document.getElementById('openModalBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const fileInput = document.getElementById('fileInput');
+        const fileNombre = document.getElementById('fileNombre');
+        const submitBtn = document.getElementById('submitPedidoBtn');
 
-          const row = document.createElement("tr");
-          row.innerHTML = `
-            <td>${p.nombre}</td>
-            <td>${qty}</td>
-            <td>$${p.precio.toFixed(2)}</td>
-            <td>$${subtotal.toFixed(2)}</td>
-          `;
-          tableBody.appendChild(row);
+        // ----- RENDERIZAR MURO -----
+        function renderProductos(filtro = 'all') {
+            masonry.innerHTML = '';
+            const filtrados = filtro === 'all' ? productos : productos.filter(p => p.categoria === filtro);
+            
+            filtrados.forEach(prod => {
+                const cant = carrito[prod.id] || 0;
+                const pin = document.createElement('div');
+                pin.className = 'pin';
+                pin.innerHTML = `
+                    <div class="pin-image-wrapper">
+                        <img src="${prod.imagen}" alt="${prod.nombre}" loading="lazy">
+                        ${prod.personalizable ? `<span class="badge-personalizable">✏️ Personalizable</span>` : ''}
+                        <div class="pin-overlay">
+                            <span class="pin-nombre">${prod.nombre}</span>
+                            <span class="pin-precio">$${prod.precio.toFixed(2)}</span>
+                        </div>
+                        <div class="quantity-control" data-id="${prod.id}">
+                            <button class="qty-minus" data-id="${prod.id}">−</button>
+                            <span class="qty-number" id="qty-${prod.id}">${cant}</span>
+                            <button class="qty-plus" data-id="${prod.id}">+</button>
+                        </div>
+                    </div>
+                `;
+                masonry.appendChild(pin);
+            });
+
+            // Asignar eventos a los botones después de renderizar
+            document.querySelectorAll('.qty-plus').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = parseInt(btn.dataset.id);
+                    agregarProducto(id);
+                });
+            });
+            document.querySelectorAll('.qty-minus').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = parseInt(btn.dataset.id);
+                    quitarProducto(id);
+                });
+            });
         }
-      });
 
-      if (!hasItems) {
-        tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--text-muted);">No has seleccionado ningún producto aún.</td></tr>`;
-      } else {
-        const totalRow = document.createElement("tr");
-        totalRow.className = "total-row";
-        totalRow.innerHTML = `
-          <td colspan="3">TOTAL GENERAL</td>
-          <td>$${grandTotal.toFixed(2)}</td>
-        `;
-        tableBody.appendChild(totalRow);
-      }
+        // ----- FUNCIONES CARRITO -----
+        function agregarProducto(id) {
+            if (!carrito[id]) carrito[id] = 0;
+            carrito[id] += 1;
+            actualizarUI(id);
+            
+            // Toast
+            const prod = productos.find(p => p.id === id);
+            mostrarToast(`🧵 ${prod.nombre} agregado. Subtotal: $${(prod.precio * carrito[id]).toFixed(2)}`);
+        }
 
-      document.getElementById("checkoutModal").classList.add("active");
-    }
+        function quitarProducto(id) {
+            if (carrito[id] && carrito[id] > 0) {
+                carrito[id] -= 1;
+                if (carrito[id] === 0) delete carrito[id];
+                actualizarUI(id);
+            }
+        }
 
-    function closeCheckoutModal() {
-      document.getElementById("checkoutModal").classList.remove("active");
-    }
+        function actualizarUI(id) {
+            // Actualizar número en la tarjeta
+            const qtySpan = document.getElementById(`qty-${id}`);
+            if (qtySpan) qtySpan.textContent = carrito[id] || 0;
 
-    function selectPayment(element, method) {
-      document.querySelectorAll(".payment-btn").forEach(btn => btn.classList.remove("selected"));
-      element.classList.add("selected");
-      selectedPaymentMethod = method;
-    }
+            // Actualizar total general
+            let total = 0;
+            for (const [pid, cant] of Object.entries(carrito)) {
+                const prod = productos.find(p => p.id === parseInt(pid));
+                if (prod) total += prod.precio * cant;
+            }
+            cartTotalSpan.textContent = `$${total.toFixed(2)}`;
 
-    function updateFileName(input) {
-      const display = document.getElementById("fileNameDisplay");
-      if (input.files && input.files[0]) {
-        display.textContent = `📄 ${input.files[0].name}`;
-      }
-    }
+            // Actualizar el resumen del modal si está abierto
+            if (modal.classList.contains('active')) {
+                actualizarModal();
+            }
+        }
 
-    function handleFormSubmit(event) {
-      event.preventDefault();
+        function mostrarToast(mensaje) {
+            toast.textContent = mensaje;
+            toast.classList.add('show');
+            clearTimeout(toast._timeout);
+            toast._timeout = setTimeout(() => toast.classList.remove('show'), 2000);
+        }
 
-      const name = document.getElementById("clientName").value;
-      const type = document.getElementById("personType").value;
-      const fileInput = document.getElementById("fileInput");
-      const fileName = fileInput.files[0] ? fileInput.files[0].name : "Ninguno";
-      const total = calculateTotal();
+        // ----- FILTROS -----
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                const cat = this.dataset.category;
+                renderProductos(cat);
+                // Re-aplicar cantidades en el nuevo render
+                for (const [id, cant] of Object.entries(carrito)) {
+                    const span = document.getElementById(`qty-${id}`);
+                    if (span) span.textContent = cant;
+                }
+            });
+        });
 
-      if (total === 0) {
-        alert("Por favor, agrega al menos un producto a tu pedido antes de continuar.");
-        return;
-      }
+        // ----- MODAL -----
+        function actualizarModal() {
+            let html = '';
+            let totalGeneral = 0;
+            let items = [];
 
-      alert(`✅ ¡PEDIDO ENVIADO CON ÉXITO!\n\n` +
-            `Cliente: ${name}\n` +
-            `Tipo: ${type}\n` +
-            `Método de Pago: ${selectedPaymentMethod}\n` +
-            `Comprobante: ${fileName}\n` +
-            `Total a Pagar: $${total.toFixed(2)}`);
+            for (const [pid, cant] of Object.entries(carrito)) {
+                if (cant === 0) continue;
+                const prod = productos.find(p => p.id === parseInt(pid));
+                if (!prod) continue;
+                const subtotal = prod.precio * cant;
+                totalGeneral += subtotal;
+                items.push({ nombre: prod.nombre, cant, unitario: prod.precio, subtotal });
+            }
 
-      closeCheckoutModal();
-    }
+            if (items.length === 0) {
+                html = '<p style="color: #94A3B8; text-align:center; padding:20px;">No has agregado ningún diseño aún.</p>';
+            } else {
+                items.forEach(item => {
+                    html += `
+                        <div class="modal-resumen-item">
+                            <span><strong>${item.nombre}</strong> x${item.cant}</span>
+                            <span>$${item.subtotal.toFixed(2)} <small style="color:#94A3B8;">($${item.unitario.toFixed(2)} c/u)</small></span>
+                        </div>
+                    `;
+                });
+                html += `
+                    <div class="modal-total">
+                        <span>💰 TOTAL</span>
+                        <span>$${totalGeneral.toFixed(2)}</span>
+                    </div>
+                `;
+            }
+            modalResumen.innerHTML = html;
+        }
 
-    // EVENTOS DE FILTRADO
-    filterBar.addEventListener("click", (e) => {
-      if (e.target.classList.contains("chip-btn")) {
-        document.querySelectorAll(".chip-btn").forEach(b => b.classList.remove("active"));
-        e.target.classList.add("active");
-        renderProducts(e.target.dataset.category);
-      }
-    });
+        openModalBtn.addEventListener('click', () => {
+            actualizarModal();
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
 
-    // INICIALIZACIÓN
-    renderProducts("todas");
-  </script>
+        closeModalBtn.addEventListener('click', () => {
+            modal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+                document.body.style.overflow = 'auto';
+            }
+        });
+
+        // ----- MÉTODOS DE PAGO -----
+        document.querySelectorAll('.payment-options button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.payment-options button').forEach(b => b.classList.remove('selected'));
+                this.classList.add('selected');
+            });
+        });
+
+        // ----- SUBIDA DE ARCHIVO -----
+        fileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                fileNombre.textContent = `📎 Archivo seleccionado: ${this.files[0].name}`;
+            }
+        });
+
+        document.getElementById('fileUploadBox').addEventListener('click', () => fileInput.click());
+
+        // ----- ENVIAR PEDIDO -----
+        submitBtn.addEventListener('click', () => {
+            const nombre = document.getElementById('clienteNombre').value.trim();
+            const tipo = document.getElementById('clienteTipo').value;
+            const metodoSeleccionado = document.querySelector('.payment-options button.selected');
+            const metodo = metodoSeleccionado ? metodoSeleccionado.textContent.trim() : 'No seleccionado';
+            const archivo = fileInput.files[0];
+
+            if (!nombre) {
+                alert('⚠️ Por favor, ingresa tu nombre y apellido.');
+                return;
+            }
+
+            let resumen = `🧾 PEDIDO CONFIRMADO\n`;
+            resumen += `👤 Cliente: ${nombre}\n`;
+            resumen += `🏢 Tipo: ${tipo === 'natural' ? 'Persona Natural' : 'Empresa'}\n`;
+            resumen += `💳 Pago: ${metodo}\n`;
+            resumen += `📎 Archivo: ${archivo ? archivo.name : 'No se adjuntó captura'}\n`;
+            resumen += `───────────────────\n`;
+
+            let total = 0;
+            for (const [pid, cant] of Object.entries(carrito)) {
+                if (cant === 0) continue;
+                const prod = productos.find(p => p.id === parseInt(pid));
+                if (prod) {
+                    const subtotal = prod.precio * cant;
+                    total += subtotal;
+                    resumen += `${prod.nombre} x${cant} = $${subtotal.toFixed(2)}\n`;
+                }
+            }
+            resumen += `───────────────────\n`;
+            resumen += `💰 TOTAL A PAGAR: $${total.toFixed(2)}`;
+
+            alert(resumen);
+            
+            // (Opcional) Resetear carrito después de enviar
+            // carrito = {};
+            // renderProductos();
+            // cartTotalSpan.textContent = '$0.00';
+            // modal.classList.remove('active');
+            // document.body.style.overflow = 'auto';
+        });
+
+        // ----- INICIALIZAR -----
+        renderProductos('all');
+    </script>
 </body>
 </html>
+"""
+
+@app.route('/')
+def index():
+    return render_template_string(HTML_CODE)
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)
