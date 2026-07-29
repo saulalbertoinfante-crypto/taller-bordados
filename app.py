@@ -1,567 +1,407 @@
-"""
-Taller de Bordados - Catálogo y Cotizador
-==========================================
-App Streamlit con:
-- Muro visual tipo Pinterest con MASONRY REAL (CSS column-count aplicado
-  sobre los contenedores nativos de Streamlit, con widgets interactivos
-  funcionando dentro de cada tarjeta).
-- Overlay inferior con degradado: nombre (izq.) y precio (der.).
-- Badge "personalizable ✏️" flotante en la esquina superior izquierda.
-- Zona de acción (🔍 − cant + Agregar) flotando sobre la imagen, con fondo
-  blanco translúcido + blur, pegada a la esquina inferior derecha.
-- Filtros de categoría con subrayado animado en vez de píldora sólida.
-- Hover: zoom suave en la imagen + sombra elevada en la tarjeta.
-- Toast de confirmación con el total acumulado al agregar.
-- Vista rápida en modal, checkout en 2 pasos, PDF y mensaje de WhatsApp.
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Muro de Inspiración - Catálogo de Bordados</title>
+  <style>
+    /* RESET Y VARIABLES DE MARCA */
+    :root {
+      --primary: #1A5F7A;
+      --secondary: #22A39F;
+      --bg-light: #F8FAFC;
+      --text-main: #0F172A;
+      --text-muted: #64748B;
+      --border-light: #CBD5E1;
+      --shadow-card: 0 4px 15px rgba(0, 0, 0, 0.05);
+      --shadow-hover: 0 20px 30px -10px rgba(0, 0, 0, 0.2);
+    }
 
-Cómo ejecutar localmente:
-    pip install -r requirements.txt
-    streamlit run app.py
-"""
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
 
-import streamlit as st
-from streamlit_option_menu import option_menu
-from fpdf import FPDF
-from datetime import datetime
-import urllib.parse
+    body {
+      background-color: var(--bg-light);
+      color: var(--text-main);
+      padding: 40px 20px;
+    }
 
-# ----------------------------------------------------------------------------
-# CONFIGURACIÓN GENERAL
-# ----------------------------------------------------------------------------
-st.set_page_config(
-    page_title="Taller de Bordados",
-    page_icon="🧵",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
 
-NUMERO_WHATSAPP = "584121234567"  # formato internacional sin '+'
-DATOS_PAGO_MOVIL = "0412-1234567 / C.I. 12.345.678 / Banco Ejemplo"
-DATOS_ZELLE = "correo@ejemplo.com / Nombre Apellido"
-DATOS_USDT_BINANCE = "ID Binance Pay: 123456789 (o dirección USDT-TRC20: T...)"
+    /* HEADER */
+    header {
+      margin-bottom: 30px;
+      text-align: center;
+    }
 
-# Paleta (según especificación V2)
-COLOR_FONDO = "#F8FAFC"
-COLOR_AZUL_PRIMARIO = "#1A5F7A"
-COLOR_AZUL_SECUNDARIO = "#22A39F"
-COLOR_BORDE = "#E2E8F0"
-COLOR_GRIS_AZULADO = "#64748B"
+    header h1 {
+      font-size: 2.2rem;
+      color: var(--primary);
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
 
-DISEÑOS_POR_PAGINA = 6
+    /* 1. FILTROS EN PÍLDORAS (CHIPS) */
+    .filter-container {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 35px;
+    }
 
-# ----------------------------------------------------------------------------
-# CATÁLOGO
-# ----------------------------------------------------------------------------
-CATALOGO = [
-    {"id": 1, "nombre": "Mariposa Monarca", "categoria": "Animales",
-     "img": "https://placehold.co/400x520/87CEEB/1a1a2e?text=Mariposa+Monarca",
-     "precio": 5.00, "personalizable": False},
-    {"id": 2, "nombre": "Ramo Floral Vintage", "categoria": "Floral",
-     "img": "https://placehold.co/400x680/87CEEB/1a1a2e?text=Ramo+Floral",
-     "precio": 6.50, "personalizable": False},
-    {"id": 3, "nombre": "Iniciales Personalizadas", "categoria": "Nombres",
-     "img": "https://placehold.co/400x420/87CEEB/1a1a2e?text=Iniciales",
-     "precio": 4.00, "personalizable": True},
-    {"id": 4, "nombre": "Cactus Boho", "categoria": "Plantas",
-     "img": "https://placehold.co/400x580/87CEEB/1a1a2e?text=Cactus+Boho",
-     "precio": 4.50, "personalizable": False},
-    {"id": 5, "nombre": "Frase Motivacional", "categoria": "Letras",
-     "img": "https://placehold.co/400x370/87CEEB/1a1a2e?text=Frase",
-     "precio": 3.50, "personalizable": True},
-    {"id": 6, "nombre": "Mandala Circular", "categoria": "Geométrico",
-     "img": "https://placehold.co/400x630/87CEEB/1a1a2e?text=Mandala",
-     "precio": 7.00, "personalizable": False},
-]
-CATALOGO_POR_ID = {d["id"]: d for d in CATALOGO}
+    .chip-btn {
+      background: transparent;
+      border: 1px solid var(--border-light);
+      color: var(--text-muted);
+      padding: 8px 20px;
+      border-radius: 30px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      outline: none;
+    }
 
-# ----------------------------------------------------------------------------
-# ESTILOS
-# ----------------------------------------------------------------------------
-st.markdown(
-    f"""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+    .chip-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
 
-    .stApp {{ background-color: {COLOR_FONDO}; font-family: 'Poppins', sans-serif; }}
-    [data-testid="stSidebar"] {{ background-color: white; }}
-    h1, h2, h3 {{ color: {COLOR_AZUL_PRIMARIO}; font-family: 'Poppins', sans-serif; font-weight: 300; }}
+    .chip-btn.active {
+      background-color: var(--primary);
+      border-color: var(--primary);
+      color: #FFFFFF;
+      box-shadow: 0 4px 10px rgba(26, 95, 122, 0.25);
+    }
 
-    /* ---------- MASONRY REAL vía column-count ---------- */
-    .muro-diseños {{
-        column-count: 4;
-        column-gap: 18px;
-    }}
-    @media (max-width: 1200px) {{ .muro-diseños {{ column-count: 3; }} }}
-    @media (max-width: 800px)  {{ .muro-diseños {{ column-count: 2; }} }}
-    @media (max-width: 480px)  {{ .muro-diseños {{ column-count: 2; }} }}
+    /* 2. LAYOUT MASONRY PINTEREST */
+    .masonry-grid {
+      column-count: 3;
+      column-gap: 20px;
+    }
 
-    .muro-diseños div[data-testid="stVerticalBlockBorderWrapper"] {{
-        display: inline-block;
-        width: 100%;
-        break-inside: avoid;
-        margin: 0 0 18px 0;
-        background: white;
-        border-radius: 12px !important;
-        border: 1px solid {COLOR_BORDE} !important;
-        box-shadow: 0 1px 4px rgba(26,43,60,0.08);
-        transition: box-shadow 0.25s ease;
-        overflow: hidden;
-    }}
-    .muro-diseños div[data-testid="stVerticalBlockBorderWrapper"]:hover {{
-        box-shadow: 0 14px 30px rgba(26,43,60,0.20);
-    }}
+    @media (max-width: 768px) {
+      .masonry-grid {
+        column-count: 2;
+        column-gap: 15px;
+      }
+    }
 
-    /* ---------- Imagen + overlays ---------- */
-    .pin-image-wrap {{ position: relative; margin: -1rem -1rem 0 -1rem; overflow: hidden; }}
-    .pin-image {{ width: 100%; display: block; transition: transform 0.35s ease; }}
-    .muro-diseños div[data-testid="stVerticalBlockBorderWrapper"]:hover .pin-image {{
-        transform: scale(1.04);
-    }}
-    .pin-badge-personalizable {{
-        position: absolute; top: 10px; left: 10px;
-        background: {COLOR_AZUL_SECUNDARIO}; color: white;
-        font-weight: 600; font-size: 0.7rem; text-transform: lowercase;
-        padding: 4px 10px; border-radius: 20px; z-index: 4;
-    }}
-    .pin-overlay {{
-        position: absolute; left: 0; right: 0; bottom: 0;
-        display: flex; justify-content: space-between; align-items: flex-end;
-        padding: 32px 12px 8px 12px;
-        background: linear-gradient(to top, rgba(26,43,60,0.85), rgba(26,43,60,0));
-        z-index: 3;
-    }}
-    .pin-nombre {{ color: white; font-weight: 600; font-size: 0.95rem; line-height: 1.15; }}
-    .pin-precio-overlay {{ color: white; font-weight: 700; font-size: 0.95rem; background: rgba(0,0,0,0.35); padding: 2px 8px; border-radius: 10px; }}
+    @media (max-width: 480px) {
+      .masonry-grid {
+        column-count: 1;
+      }
+    }
 
-    /* ---------- Zona de acción flotante sobre la imagen ---------- */
-    .pin-controles {{
-        margin: -46px 8px 10px auto;
-        width: fit-content;
-        margin-left: auto;
-        background: rgba(255,255,255,0.9);
-        backdrop-filter: blur(4px);
-        border-radius: 30px;
-        padding: 3px 6px;
-        position: relative;
-        z-index: 6;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    }}
-    .pin-controles div[data-testid="column"] div.stButton > button {{
-        border-radius: 50% !important;
-        width: 30px; height: 30px;
-        padding: 0 !important;
-        font-weight: 700;
-        font-size: 0.85rem;
-        background-color: white;
-        color: {COLOR_AZUL_PRIMARIO};
-        border: 1px solid {COLOR_AZUL_PRIMARIO} !important;
-    }}
-    .pin-controles div[data-testid="column"]:last-child div.stButton > button {{
-        background-color: {COLOR_AZUL_PRIMARIO} !important;
-        color: white !important;
-        border: none !important;
-    }}
-    .cantidad-badge {{
-        text-align: center; padding-top: 6px; font-weight: 700;
-        color: {COLOR_AZUL_PRIMARIO}; font-size: 0.85rem; width: 20px;
-    }}
+    /* 3 & 5. TARJETA, OVERLAY Y HOVER EFFECT */
+    .card {
+      position: relative;
+      margin-bottom: 20px;
+      border-radius: 16px;
+      overflow: hidden;
+      background-color: #FFFFFF;
+      box-shadow: var(--shadow-card);
+      break-inside: avoid;
+      -webkit-column-break-inside: avoid;
+      transition: box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
 
-    /* ---------- Botones generales ---------- */
-    div.stButton > button {{
-        background-color: {COLOR_AZUL_PRIMARIO};
-        color: white; border-radius: 10px; border: none;
-    }}
-    div.stButton > button:hover {{ background-color: {COLOR_AZUL_SECUNDARIO}; color: white; }}
+    .card:hover {
+      box-shadow: var(--shadow-hover);
+    }
 
-    /* ---------- Filtros: subrayado en vez de píldora ---------- */
-    .filtro-categorias a.nav-link {{
-        background-color: transparent !important;
-        color: {COLOR_GRIS_AZULADO} !important;
-        border-bottom: 3px solid transparent !important;
-        border-radius: 0 !important;
-        font-weight: 500 !important;
-        transition: color 0.2s ease, border-color 0.2s ease;
-    }}
-    .filtro-categorias a.nav-link:hover {{
-        color: {COLOR_AZUL_PRIMARIO} !important;
-    }}
-    .filtro-categorias a.nav-link.active {{
-        background-color: transparent !important;
-        color: {COLOR_AZUL_PRIMARIO} !important;
-        font-weight: 600 !important;
-        border-bottom: 3px solid {COLOR_AZUL_PRIMARIO} !important;
-    }}
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+    .card-image-wrapper {
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+      display: block;
+    }
 
-# ----------------------------------------------------------------------------
-# ESTADO DE SESIÓN
-# ----------------------------------------------------------------------------
-if "carrito" not in st.session_state:
-    st.session_state.carrito = {}
-if "cantidades" not in st.session_state:
-    st.session_state.cantidades = {d["id"]: 1 for d in CATALOGO}
-if "nav_page" not in st.session_state:
-    st.session_state.nav_page = None
-if "mostrar_checkout" not in st.session_state:
-    st.session_state.mostrar_checkout = False
-if "checkout_paso" not in st.session_state:
-    st.session_state.checkout_paso = 1
-if "pedido_enviado" not in st.session_state:
-    st.session_state.pedido_enviado = False
-if "mostrar_n" not in st.session_state:
-    st.session_state.mostrar_n = DISEÑOS_POR_PAGINA
-if "mostrar_detalle" not in st.session_state:
-    st.session_state.mostrar_detalle = False
-if "detalle_id" not in st.session_state:
-    st.session_state.detalle_id = None
+    .card-image-wrapper img {
+      width: 100%;
+      height: auto;
+      display: block;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
 
+    .card:hover .card-image-wrapper img {
+      transform: scale(1.03);
+    }
 
-def total_carrito():
-    return sum(i["cantidad"] * i["precio_unit"] for i in st.session_state.carrito.values())
+    /* 6. BADGE PERSONALIZABLE */
+    .badge-custom {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background-color: var(--secondary);
+      color: #FFFFFF;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      z-index: 2;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
 
+    /* DEGRADADO Y DATOS DE LA TARJETA */
+    .card-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 40px 16px 16px 16px;
+      background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      z-index: 1;
+      pointer-events: none;
+    }
 
-def eliminar_del_carrito(id_diseno):
-    if id_diseno in st.session_state.carrito:
-        del st.session_state.carrito[id_diseno]
+    .card-info {
+      color: #FFFFFF;
+    }
 
+    .card-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 2px;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    }
 
-# ----------------------------------------------------------------------------
-# PDF
-# ----------------------------------------------------------------------------
-def generar_pdf_cotizacion():
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Helvetica", "B", 18)
-    pdf.set_text_color(26, 95, 122)
-    pdf.cell(0, 12, "Taller de Bordados - Cotizacion", ln=True, align="C")
+    .card-price {
+      font-size: 0.9rem;
+      font-weight: 400;
+      opacity: 0.9;
+    }
 
-    pdf.set_font("Helvetica", "", 11)
-    pdf.set_text_color(0, 0, 0)
-    fecha = datetime.now().strftime("%d/%m/%Y")
-    pdf.cell(0, 8, f"Fecha: {fecha}", ln=True)
-    pdf.ln(4)
+    /* 3. CONTROLADOR DE CANTIDAD FLOTANTE */
+    .quantity-control {
+      pointer-events: auto;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      padding: 3px;
+      gap: 6px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
 
-    pdf.set_font("Helvetica", "B", 11)
-    pdf.cell(100, 8, "Diseno", border=1)
-    pdf.cell(30, 8, "P. Unit.", border=1)
-    pdf.cell(20, 8, "Cant.", border=1)
-    pdf.cell(30, 8, "Subtotal", border=1, ln=True)
+    .btn-qty {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.2s, color 0.2s;
+    }
 
-    pdf.set_font("Helvetica", "", 11)
-    for item in st.session_state.carrito.values():
-        subtotal = item["cantidad"] * item["precio_unit"]
-        pdf.cell(100, 8, item["nombre"], border=1)
-        pdf.cell(30, 8, f"${item['precio_unit']:.2f}", border=1)
-        pdf.cell(20, 8, str(item["cantidad"]), border=1)
-        pdf.cell(30, 8, f"${subtotal:.2f}", border=1, ln=True)
+    .btn-minus {
+      background: transparent;
+      color: var(--text-main);
+    }
 
-    pdf.ln(4)
-    pdf.set_font("Helvetica", "B", 13)
-    pdf.cell(0, 10, f"TOTAL A PAGAR: ${total_carrito():.2f}", ln=True, align="R")
-    return bytes(pdf.output(dest="S"))
+    .btn-minus:hover {
+      background: rgba(0, 0, 0, 0.08);
+    }
 
+    .btn-plus {
+      background-color: var(--primary);
+      color: #FFFFFF;
+    }
 
-# ----------------------------------------------------------------------------
-# MENSAJE WHATSAPP
-# ----------------------------------------------------------------------------
-def construir_mensaje_whatsapp(cliente, metodo_pago):
-    fecha = datetime.now().strftime("%d/%m/%Y")
-    lineas = [
-        f"Fecha: {fecha}",
-        f"Cliente: {cliente['nombre']} {cliente['apellido']} ({cliente['tipo_cliente']})",
-        f"Dirección: {cliente['direccion']}",
-        "Detalle del Pedido:",
-    ]
-    for item in st.session_state.carrito.values():
-        subtotal = item["cantidad"] * item["precio_unit"]
-        lineas.append(f"- {item['cantidad']}x {item['nombre']} -> ${subtotal:.2f}")
-    lineas.append("-" * 30)
-    lineas.append(f"TOTAL A PAGAR: ${total_carrito():.2f}")
-    lineas.append(f"Método de Pago Seleccionado: {metodo_pago}")
-    lineas.append("")
-    lineas.append("Adjunto mi comprobante para agilizar la entrega.")
-    return "\n".join(lineas)
+    .btn-plus:hover {
+      background-color: #14495e;
+    }
 
+    .qty-display {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-main);
+      min-width: 14px;
+      text-align: center;
+    }
 
-# ----------------------------------------------------------------------------
-# MODAL: VISTA RÁPIDA
-# ----------------------------------------------------------------------------
-@st.dialog("Vista rápida")
-def modal_detalle(diseno):
-    st.image(diseno["img"], use_container_width=True)
-    st.markdown(f"### {diseno['nombre']}")
-    st.markdown(f"**Precio:** ${diseno['precio']:.2f}")
-    if diseno.get("personalizable"):
-        st.info("✏️ Este diseño es personalizable — contáctanos para tus iniciales o colores.")
-    if st.button("Cerrar", use_container_width=True):
-        st.session_state.mostrar_detalle = False
-        st.rerun()
+    /* 4. TOAST NOTIFICACIÓN */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
 
+    .toast {
+      background-color: var(--primary);
+      color: #FFFFFF;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
 
-# ----------------------------------------------------------------------------
-# MODAL: CHECKOUT (2 PASOS)
-# ----------------------------------------------------------------------------
-@st.dialog("Finalizar cotización")
-def modal_checkout():
-    if st.session_state.checkout_paso == 1:
-        st.subheader("Paso 1 de 2 · Datos del cliente")
-        nombre = st.text_input("Nombre", value=st.session_state.get("c_nombre", ""))
-        apellido = st.text_input("Apellido", value=st.session_state.get("c_apellido", ""))
-        direccion = st.text_input("Dirección", value=st.session_state.get("c_direccion", ""))
-        tipo_cliente = st.radio(
-            "Tipo de cliente", ["Natural", "Empresa"],
-            horizontal=True,
-            index=0 if st.session_state.get("c_tipo", "Natural") == "Natural" else 1,
-        )
-        col1, col2 = st.columns(2)
-        if col1.button("Cancelar", use_container_width=True):
-            st.session_state.mostrar_checkout = False
-            st.rerun()
-        if col2.button("Siguiente →", use_container_width=True):
-            if nombre.strip() and apellido.strip() and direccion.strip():
-                st.session_state.c_nombre = nombre.strip()
-                st.session_state.c_apellido = apellido.strip()
-                st.session_state.c_direccion = direccion.strip()
-                st.session_state.c_tipo = tipo_cliente
-                st.session_state.checkout_paso = 2
-                st.rerun()
-            else:
-                st.warning("Completa nombre, apellido y dirección para continuar.")
-    else:
-        st.subheader("Paso 2 de 2 · Método de pago")
-        metodo = st.radio(
-            "Selecciona tu método de pago",
-            ["Pago Móvil", "Zelle", "USDT Binance"],
-            index=["Pago Móvil", "Zelle", "USDT Binance"].index(
-                st.session_state.get("c_metodo", "Pago Móvil")
-            ),
-        )
-        if metodo == "Pago Móvil":
-            st.info(f"Datos Pago Móvil: {DATOS_PAGO_MOVIL}")
-        elif metodo == "Zelle":
-            st.info(f"Datos Zelle: {DATOS_ZELLE}")
-        else:
-            st.info(f"Datos USDT Binance: {DATOS_USDT_BINANCE}")
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
 
-        comprobante = st.file_uploader(
-            "Sube la captura de tu comprobante de pago",
-            type=["png", "jpg", "jpeg", "pdf"],
-        )
-        col1, col2 = st.columns(2)
-        if col1.button("← Atrás", use_container_width=True):
-            st.session_state.checkout_paso = 1
-            st.rerun()
-        if col2.button("Enviar pedido", use_container_width=True):
-            if comprobante is None:
-                st.warning("Adjunta la captura del comprobante antes de enviar.")
-            else:
-                st.session_state.c_metodo = metodo
-                st.session_state.pedido_enviado = True
-                st.session_state.mostrar_checkout = False
-                st.session_state.checkout_paso = 1
-                st.rerun()
+  <div class="container">
+    <header>
+      <h1>Un muro de inspiración</h1>
+    </header>
 
+    <!-- Píldoras de Filtros -->
+    <div class="filter-container" id="filterContainer">
+      <button class="chip-btn active" data-category="todas">Todas</button>
+      <button class="chip-btn" data-category="animales">Animales</button>
+      <button class="chip-btn" data-category="floral">Floral</button>
+      <button class="chip-btn" data-category="letras">Letras</button>
+      <button class="chip-btn" data-category="geometrico">Geométrico</button>
+      <button class="chip-btn" data-category="nombres">Nombres</button>
+    </div>
 
-# ----------------------------------------------------------------------------
-# NAVEGACIÓN
-# ----------------------------------------------------------------------------
-with st.sidebar:
-    st.markdown("## 🧵 Taller de Bordados")
-    opciones = ["Catálogo", "Mi Cotización", "Contacto"]
-    manual_idx = opciones.index(st.session_state.nav_page) if st.session_state.nav_page else None
-    pagina = option_menu(
-        menu_title=None,
-        options=opciones,
-        icons=["grid-3x3-gap", "cart3", "whatsapp"],
-        default_index=0,
-        manual_select=manual_idx,
-        key="menu_principal",
-        styles={
-            "container": {"background-color": "white"},
-            "nav-link-selected": {"background-color": COLOR_AZUL_PRIMARIO},
-        },
-    )
-    st.session_state.nav_page = None
-    n_items = sum(i["cantidad"] for i in st.session_state.carrito.values())
-    st.markdown(f"**Artículos en cotización:** {n_items}")
+    <!-- Muro Masonry -->
+    <div class="masonry-grid" id="masonryGrid"></div>
+  </div>
 
-# ----------------------------------------------------------------------------
-# PÁGINA: CATÁLOGO
-# ----------------------------------------------------------------------------
-if pagina == "Catálogo":
-    st.title("Catálogo de Diseños")
-    st.caption("Un muro de inspiración — explora, ajusta la cantidad y agrega tus favoritos.")
+  <!-- Contenedor para notificaciones Toast -->
+  <div class="toast-container" id="toastContainer"></div>
 
-    categorias = ["Todas"] + sorted({d["categoria"] for d in CATALOGO})
-    st.markdown('<div class="filtro-categorias">', unsafe_allow_html=True)
-    filtro = option_menu(
-        menu_title=None,
-        options=categorias,
-        orientation="horizontal",
-        default_index=0,
-        key="filtro_categoria",
-        styles={
-            "container": {"padding": "0!important", "background-color": "transparent"},
-            "nav-link": {
-                "font-size": "14px",
-                "text-align": "center",
-                "margin": "0px 14px 0px 0px",
-                "padding": "8px 4px",
-                "white-space": "nowrap",
-            },
-        },
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
+  <script>
+    const designs = [
+      { id: 1, name: "Mariposa Monarca", category: "animales", price: 5.00, image: "https://via.placeholder.com/300x400/1A5F7A/FFFFFF?text=Mariposa", personalizable: false },
+      { id: 2, name: "Ramo Floral", category: "floral", price: 6.50, image: "https://via.placeholder.com/300x300/22A39F/FFFFFF?text=Ramo", personalizable: false },
+      { id: 3, name: "Iniciales", category: "letras", price: 4.00, image: "https://via.placeholder.com/300x500/AEE2FF/1A5F7A?text=Iniciales", personalizable: true },
+      { id: 4, name: "Águila Real", category: "animales", price: 8.00, image: "https://via.placeholder.com/300x350/1A5F7A/FFFFFF?text=Águila", personalizable: false },
+      { id: 5, name: "Mandala Geométrico", category: "geometrico", price: 7.00, image: "https://via.placeholder.com/300x250/22A39F/FFFFFF?text=Mandala", personalizable: false },
+      { id: 6, name: "Nombre Personalizado", category: "nombres", price: 4.00, image: "https://via.placeholder.com/300x450/AEE2FF/1A5F7A?text=Nombre", personalizable: true }
+    ];
 
-    diseños_filtrados = CATALOGO if filtro == "Todas" else [d for d in CATALOGO if d["categoria"] == filtro]
-    diseños_mostrados = diseños_filtrados[: st.session_state.mostrar_n]
+    // Estado local para persistir cantidades seleccionadas
+    const quantities = {};
+    designs.forEach(item => { quantities[item.id] = 0; });
 
-    # ---- Apertura del muro masonry: todo lo que sigue queda anidado dentro
-    # de este <div> hasta que lo cerremos explícitamente más abajo.
-    st.markdown('<div class="muro-diseños">', unsafe_allow_html=True)
+    const masonryGrid = document.getElementById("masonryGrid");
+    const filterContainer = document.getElementById("filterContainer");
+    const toastContainer = document.getElementById("toastContainer");
 
-    for diseno in diseños_mostrados:
-        did = diseno["id"]
-        with st.container(border=True):
-            badge_personalizable = (
-                '<div class="pin-badge-personalizable">✏️ personalizable</div>'
-                if diseno.get("personalizable") else ""
-            )
-            st.markdown(
-                f"""
-                <div class="pin-image-wrap">
-                    <img src="{diseno['img']}" class="pin-image" />
-                    {badge_personalizable}
-                    <div class="pin-overlay">
-                        <span class="pin-nombre">{diseno['nombre']}</span>
-                        <span class="pin-precio-overlay">${diseno['precio']:.2f}</span>
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+    // Función principal para renderizar las tarjetas en el DOM
+    function renderCards(category = "todas") {
+      masonryGrid.innerHTML = "";
+      
+      const filtered = category === "todas" 
+        ? designs 
+        : designs.filter(d => d.category.toLowerCase() === category.toLowerCase());
 
-            cant = st.session_state.cantidades.get(did, 1)
-            # ---- Franja de controles flotando sobre la imagen (margen negativo)
-            st.markdown('<div class="pin-controles">', unsafe_allow_html=True)
-            c_ver, c_menos, c_cant, c_mas, c_agregar = st.columns([1, 1, 1, 1, 1.4])
-            with c_ver:
-                if st.button("🔍", key=f"ver_{did}", help="Vista rápida"):
-                    st.session_state.detalle_id = did
-                    st.session_state.mostrar_detalle = True
-                    st.rerun()
-            with c_menos:
-                if st.button("−", key=f"menos_{did}"):
-                    st.session_state.cantidades[did] = max(1, cant - 1)
-                    st.rerun()
-            with c_cant:
-                st.markdown(f'<div class="cantidad-badge">{cant}</div>', unsafe_allow_html=True)
-            with c_mas:
-                if st.button("+", key=f"mas_{did}"):
-                    st.session_state.cantidades[did] = cant + 1
-                    st.rerun()
-            with c_agregar:
-                if st.button("＋Agregar", key=f"agregar_{did}"):
-                    if did in st.session_state.carrito:
-                        st.session_state.carrito[did]["cantidad"] += cant
-                    else:
-                        st.session_state.carrito[did] = {
-                            "nombre": diseno["nombre"],
-                            "cantidad": cant,
-                            "precio_unit": diseno["precio"],
-                        }
-                    st.toast(f"¡Diseño agregado! (Total: ${total_carrito():.2f})")
-                    st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
+      filtered.forEach(item => {
+        const card = document.createElement("div");
+        card.className = "card";
 
-    # ---- Cierre del muro masonry
-    st.markdown("</div>", unsafe_allow_html=True)
+        const badgeHtml = item.personalizable 
+          ? `<div class="badge-custom"><span>✏️</span> Personalizable</div>` 
+          : "";
 
-    if st.session_state.mostrar_n < len(diseños_filtrados):
-        st.write("")
-        _, col_centro, _ = st.columns([2, 1, 2])
-        with col_centro:
-            if st.button("Cargar más diseños", use_container_width=True):
-                st.session_state.mostrar_n += DISEÑOS_POR_PAGINA
-                st.rerun()
+        card.innerHTML = `
+          <div class="card-image-wrapper">
+            ${badgeHtml}
+            <img src="${item.image}" alt="${item.name}" loading="lazy">
+            <div class="card-overlay">
+              <div class="card-info">
+                <div class="card-title">${item.name}</div>
+                <div class="card-price">$${item.price.toFixed(2)}</div>
+              </div>
+              <div class="quantity-control">
+                <button class="btn-qty btn-minus" onclick="updateQuantity(${item.id}, -1)">−</button>
+                <span class="qty-display" id="qty-${item.id}">${quantities[item.id]}</span>
+                <button class="btn-qty btn-plus" onclick="updateQuantity(${item.id}, 1)">+</button>
+              </div>
+            </div>
+          </div>
+        `;
+        masonryGrid.appendChild(card);
+      });
+    }
 
-if st.session_state.mostrar_detalle and st.session_state.detalle_id is not None:
-    modal_detalle(CATALOGO_POR_ID[st.session_state.detalle_id])
+    // Actualizador de cantidades e invocador del Toast
+    function updateQuantity(id, change) {
+      const item = designs.find(d => d.id === id);
+      if (!item) return;
 
-# ----------------------------------------------------------------------------
-# PÁGINA: MI COTIZACIÓN
-# ----------------------------------------------------------------------------
-elif pagina == "Mi Cotización":
-    st.title("Mi Cotización")
+      const currentQty = quantities[id] || 0;
+      const newQty = Math.max(0, currentQty + change);
 
-    if st.session_state.pedido_enviado:
-        st.success("¡Pedido enviado! Revisa el mensaje de WhatsApp abajo para completarlo.")
-        mensaje = construir_mensaje_whatsapp(
-            {
-                "nombre": st.session_state.get("c_nombre", ""),
-                "apellido": st.session_state.get("c_apellido", ""),
-                "direccion": st.session_state.get("c_direccion", ""),
-                "tipo_cliente": st.session_state.get("c_tipo", ""),
-            },
-            st.session_state.get("c_metodo", ""),
-        )
-        enlace_wa = f"https://wa.me/{NUMERO_WHATSAPP}?text={urllib.parse.quote(mensaje)}"
-        st.link_button("📲 Abrir WhatsApp y adjuntar mi comprobante", enlace_wa)
-        with st.expander("Vista previa del mensaje"):
-            st.code(mensaje, language=None)
-        if st.button("Hacer un nuevo pedido"):
-            st.session_state.carrito = {}
-            st.session_state.pedido_enviado = False
-            st.rerun()
+      if (currentQty !== newQty) {
+        quantities[id] = newQty;
+        const qtyElement = document.getElementById(`qty-${id}`);
+        if (qtyElement) {
+          qtyElement.textContent = newQty;
+        }
 
-    elif not st.session_state.carrito:
-        st.info("Tu cotización está vacía. Ve al Catálogo para agregar diseños.")
+        // Si se incrementó la cantidad, lanza el Toast
+        if (change > 0) {
+          const totalAcumulado = (newQty * item.price).toFixed(2);
+          showToast(`🧵 ${item.name} agregado. Total acumulado: $${totalAcumulado}`);
+        }
+      }
+    }
 
-    else:
-        for did, item in list(st.session_state.carrito.items()):
-            subtotal = item["cantidad"] * item["precio_unit"]
-            c1, c2, c3, c4, c5 = st.columns([3, 2, 1, 2, 1])
-            c1.write(item["nombre"])
-            c2.write(f"P. unit.: ${item['precio_unit']:.2f}")
-            c3.write(f"x{item['cantidad']}")
-            c4.write(f"${subtotal:.2f}")
-            if c5.button("🗑️", key=f"del_{did}"):
-                eliminar_del_carrito(did)
-                st.rerun()
+    // Sistema de notificaciones Toast flotantes
+    function showToast(message) {
+      const toast = document.createElement("div");
+      toast.className = "toast";
+      toast.textContent = message;
 
-        st.divider()
-        st.subheader(f"TOTAL A PAGAR: ${total_carrito():.2f}")
+      toastContainer.appendChild(toast);
 
-        col_a, col_b, col_c = st.columns(3)
-        with col_a:
-            pdf_bytes = generar_pdf_cotizacion()
-            st.download_button(
-                "📄 Descargar PDF",
-                data=pdf_bytes,
-                file_name=f"cotizacion_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf",
-                mime="application/pdf",
-            )
-        with col_b:
-            if st.button("🧾 Agregar mi cotización", use_container_width=True):
-                st.session_state.mostrar_checkout = True
-                st.session_state.checkout_paso = 1
-                st.rerun()
-        with col_c:
-            if st.button("Vaciar cotización", use_container_width=True):
-                st.session_state.carrito = {}
-                st.rerun()
+      setTimeout(() => {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateY(10px)";
+        toast.style.transition = "all 0.3s ease";
+        setTimeout(() => toast.remove(), 300);
+      }, 2000);
+    }
 
-if st.session_state.mostrar_checkout:
-    modal_checkout()
+    // Manejador de eventos para los filtros (Chips)
+    filterContainer.addEventListener("click", (e) => {
+      if (e.target.classList.contains("chip-btn")) {
+        document.querySelectorAll(".chip-btn").forEach(btn => btn.classList.remove("active"));
+        e.target.classList.add("active");
+        renderCards(e.target.dataset.category);
+      }
+    });
 
-# ----------------------------------------------------------------------------
-# PÁGINA: CONTACTO
-# ----------------------------------------------------------------------------
-if pagina == "Contacto":
-    st.title("Contacto")
-    st.write("¿Tienes dudas sobre un diseño o quieres un bordado personalizado?")
-    st.markdown(f"📲 Escríbenos por WhatsApp: **+{NUMERO_WHATSAPP}**")
-    st.markdown("📸 Síguenos en Instagram para ver nuestros trabajos más recientes.")
+    // Carga inicial
+    renderCards("todas");
+  </script>
+</body>
+</html>
