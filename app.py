@@ -20,7 +20,7 @@ HTML_CODE = """
             padding: 20px;
             max-width: 1400px;
             margin: 0 auto;
-            overflow: hidden; /* Evita scroll de la página, solo el iframe */
+            overflow: hidden; /* Evita scroll de la página */
             height: auto;
         }
         .header {
@@ -709,4 +709,4 @@ HTML_CODE = """
 """
 
 st.set_page_config(page_title="Catálogo de Bordados", layout="wide")
-st.components.v1.html(HTML_CODE, height=1400, scrolling=True)
+st.components.v1.html(HTML_CODE, height=2000, scrolling=True)
